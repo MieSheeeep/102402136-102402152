@@ -133,3 +133,17 @@ button,input,select,textarea{font-family:inherit}h1,h2,h3,strong{font-weight:600
 .filter-chip>span,.publish-area-chip>span{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;gap:0;padding:4px 12px}
 .filter-chip>span .icon,.publish-area-chip>span .icon{position:absolute;right:3px;top:50%;width:10px;height:10px;margin-top:-5px;pointer-events:none;transform:scale(.65)}
 .filter-chip input:checked+span .icon,.publish-area-chip input:checked+span .icon{transform:scale(1)}
+/* Larger hearts; saved state and transient click feedback are independent. */
+:root{--favorite:#b65362}
+.favorite-button{width:44px;height:44px;right:8px;top:10px;padding:0;border:1px solid #dfe1d9;background:#ffffffb8;color:#788177;box-shadow:0 2px 6px #30373505}
+.favorite-button:hover{background:#fff;border-color:#b7c0b3;color:#5d6c5d}.favorite-button.is-favorite,.favorite-button.is-favorite:hover{background:#f7e9ec;border-color:#dbaab3;color:var(--favorite)}
+.favorite-mark{position:relative;display:grid;place-items:center;width:24px;height:24px;flex-shrink:0;transform-origin:center}
+[data-action=favorite] .icon,[data-action=favorite]:hover .icon{width:22px;height:22px;transform:none;fill:transparent;transition:fill 180ms ease,color 180ms ease;stroke-width:1.9}
+[data-action=favorite].is-favorite,[data-action=favorite].is-favorite:hover{color:var(--favorite)}
+[data-action=favorite].is-favorite .icon{fill:var(--favorite)}
+.favorite-feedback{position:absolute;inset:-3px;border:2px solid var(--favorite);border-radius:50%;pointer-events:none;opacity:0}
+.detail-actions [data-action=favorite].is-favorite{background:#f7e9ec;border-color:#dbaab3}
+.item-card.has-favorite{border-color:#c8929c;box-shadow:inset 0 0 0 1px #b653621a}
+.item-card.has-favorite:hover{border-color:#bc7886;box-shadow:inset 0 0 0 1px #b6536226,0 5px 16px #6453470a}
+.card-info{padding-right:34px}
+@media(prefers-reduced-motion:reduce){[data-action=favorite] .icon{transition:none}}

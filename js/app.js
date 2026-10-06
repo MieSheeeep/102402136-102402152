@@ -22,6 +22,7 @@
   let toastTimer;
   let submitting = false;
   let modalTrigger;
+  const favoriteMotions = new WeakMap();
   let warningText = '';
   let currentRoute = { page: 'home', id: '' };
   let storage;
@@ -336,19 +337,37 @@
       button.classList.toggle('is-favorite', active);
       button.setAttribute('aria-pressed', String(active));
       button.setAttribute('aria-label', `${active ? '取消收藏' : '收藏'}${item.name}`);
-      if (button.classList.contains('button')) button.lastChild.textContent = active ? '已收藏' : '收藏信息';
-      const heart = button.querySelector('.icon');
-      const hovered = button.classList.contains('favorite-button') && button.matches(':hover') && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-      const rest = hovered ? 'scale(1.12)' : 'scale(1)';
-      animate(heart, active ? [
-        { transform: 'scale(.8)', fill: 'transparent', offset: 0 },
-        { transform: 'scale(1.28)', fill: '#a95c40', offset: .45 },
-        { transform: rest, fill: '#a95c40', offset: 1 }
+      const label = button.querySelector('.favorite-label');
+      if (label) label.textContent = active ? '已收藏' : '收藏信息';
+      button.closest('.item-card')?.classList.toggle('has-favorite', active);
+      const mark = button.querySelector('.favorite-mark');
+      favoriteMotions.get(mark)?.cancel();
+      mark.querySelectorAll('.favorite-feedback').forEach(effect => effect.remove());
+      if (!mark.animate || reducedMotion()) return;
+      // Animate the wrapper only: CSS remains responsible for the heart's fill.
+      const motion = mark.animate(active ? [
+        { transform: 'scale(.85)' },
+        { transform: 'scale(1.2)', offset: .4 },
+        { transform: 'scale(1)' }
       ] : [
-        { transform: 'scale(1)', fill: '#a95c40' },
-        { transform: 'scale(.85)', fill: 'transparent', offset: .45 },
-        { transform: rest, fill: 'transparent' }
-      ], active ? 340 : 220);
+        { transform: 'scale(1)' },
+        { transform: 'scale(.82)', offset: .4 },
+        { transform: 'scale(1)' }
+      ], { duration: active ? 300 : 220, easing: motionEase });
+      favoriteMotions.set(mark, motion);
+      const cleanup = () => { if (favoriteMotions.get(mark) === motion) favoriteMotions.delete(mark); };
+      motion.finished.then(cleanup, cleanup);
+      if (active) {
+        const feedback = document.createElement('span');
+        feedback.className = 'favorite-feedback';
+        feedback.setAttribute('aria-hidden', 'true');
+        mark.append(feedback);
+        const ring = feedback.animate([
+          { transform: 'scale(.7)', opacity: .55 },
+          { transform: 'scale(1.55)', opacity: 0 }
+        ], { duration: 420, easing: 'ease-out' });
+        ring.finished.then(() => feedback.remove(), () => feedback.remove());
+      }
     });
     const count = state.items.filter(post => state.favorites.includes(post.id)).length;
     const overview = document.querySelector('.account-stats>div:last-child strong');

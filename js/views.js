@@ -40,10 +40,10 @@
   const options = (list, current, placeholder) => `<option value="">${placeholder}</option>${list.map(value => `<option value="${esc(value)}" ${current === value ? 'selected' : ''}>${esc(value)}</option>`).join('')}`;
   function favoriteButton(item, favorites, detail = false) {
     const active = favorites.includes(item.id);
-    return `<button class="${detail ? 'button button-secondary' : 'favorite-button'} ${active ? 'is-favorite' : ''}" data-action="favorite" data-id="${esc(item.id)}" aria-pressed="${active}" aria-label="${active ? '取消收藏' : '收藏'}${esc(item.name)}">${icon('heart')}${detail ? (active ? '已收藏' : '收藏信息') : ''}</button>`;
+    return `<button class="${detail ? 'button button-secondary' : 'favorite-button'} ${active ? 'is-favorite' : ''}" data-action="favorite" data-id="${esc(item.id)}" aria-pressed="${active}" aria-label="${active ? '取消收藏' : '收藏'}${esc(item.name)}"><span class="favorite-mark">${icon('heart')}</span>${detail ? `<span class="favorite-label">${active ? '已收藏' : '收藏信息'}</span>` : ''}</button>`;
   }
   function card(item, favorites, manage = false, compact = false) {
-    return `<article class="item-card item-${item.type} ${item.status === 'completed' ? 'completed-card' : ''}">
+    return `<article class="item-card item-${item.type} ${item.status === 'completed' ? 'completed-card' : ''} ${favorites.includes(item.id) ? 'has-favorite' : ''}">
       ${favoriteButton(item, favorites)}
       <a class="card-link" href="#detail/${encodeURIComponent(item.id)}">
         <div class="card-image"><img src="assets/default-item.svg" alt="物品配图" width="480" height="360"></div>
