@@ -94,3 +94,9 @@ body.modal-open{overflow:hidden}
 .toast{display:flex;align-items:center;gap:10px;padding:12px 14px 12px 16px;max-width:min(460px,calc(100% - 32px));width:max-content;border:1px solid #dce4d8;background:#f3f7f0;color:#3f5947;border-radius:12px;text-align:left;font-size:13px;line-height:1.6;box-shadow:0 8px 28px #30373516}
 .toast>span{min-width:0;overflow-wrap:anywhere}.toast>.icon{width:18px;height:18px}.toast>button{display:grid;place-items:center;width:28px;height:28px;flex-shrink:0;border-radius:7px;opacity:.65}.toast>button:hover{background:#3037350a;opacity:1}.toast>button .icon{width:15px;height:15px}.toast[data-kind=error]{background:#fbf0ed;border-color:#ead1cb;color:#944839}.toast[data-kind=info]{background:#edf2f6;border-color:#d5dfe8;color:#4f6579}
 @media(max-width:540px){.modal{width:calc(100% - 32px);max-height:calc(100dvh - 32px)}.confirm-dialog{padding:24px 20px}.confirm-dialog h2{font-size:20px}.dialog-actions .button{font-size:12px;white-space:normal}.toast{bottom:88px;font-size:12px;gap:8px}}
+/* Favorite feedback stays local to the pressed heart. */
+[data-action=favorite] .icon{fill:transparent;transform-origin:center;transition:fill 180ms ease,color 180ms ease,transform var(--motion-normal) var(--motion-ease)}
+[data-action=favorite].is-favorite .icon{fill:var(--orange)}
+[data-action=favorite].is-favorite{color:var(--orange)}
+.detail-actions [data-action=favorite].is-favorite{background:var(--soft-orange);border-color:#dfc7ba}
+@media(prefers-reduced-motion:reduce){[data-action=favorite] .icon{transition:none}}

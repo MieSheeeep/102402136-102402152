@@ -219,6 +219,53 @@
     }
   }
 
+  function toggleFavorite(item, trigger) {
+    const active = !state.favorites.includes(item.id);
+    const next = { ...state, favorites: D.toggleFavorite(state.favorites, item.id) };
+    store.save(next);
+    state = next;
+    const buttons = [...document.querySelectorAll('[data-action="favorite"]')].filter(button => button.dataset.id === item.id);
+    buttons.forEach(button => {
+      button.classList.toggle('is-favorite', active);
+      button.setAttribute('aria-pressed', String(active));
+      button.setAttribute('aria-label', `${active ? '取消收藏' : '收藏'}${item.name}`);
+      if (button.classList.contains('button')) button.lastChild.textContent = active ? '已收藏' : '收藏信息';
+      const heart = button.querySelector('.icon');
+      const hovered = button.classList.contains('favorite-button') && button.matches(':hover') && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      const rest = hovered ? 'scale(1.12)' : 'scale(1)';
+      animate(heart, active ? [
+        { transform: 'scale(.8)', fill: 'transparent', offset: 0 },
+        { transform: 'scale(1.28)', fill: '#a95c40', offset: .45 },
+        { transform: rest, fill: '#a95c40', offset: 1 }
+      ] : [
+        { transform: 'scale(1)', fill: '#a95c40' },
+        { transform: 'scale(.85)', fill: 'transparent', offset: .45 },
+        { transform: rest, fill: 'transparent' }
+      ], active ? 340 : 220);
+    });
+    const count = state.items.filter(post => state.favorites.includes(post.id)).length;
+    const overview = document.querySelector('.account-stats>div:last-child strong');
+    const tabCount = document.querySelector('[data-action="my-type"][data-value="saved"] span');
+    if (overview) overview.textContent = count;
+    if (tabCount) tabCount.textContent = count;
+    toast(active ? '已收藏' : '已取消收藏');
+    const savedList = (currentRoute.page === 'home' && filters.favoritesOnly) || (currentRoute.page === 'my' && myType === 'saved');
+    if (!active && savedList) {
+      const card = trigger.closest('.item-card');
+      const animation = animate(card, [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.97)' }], 160);
+      if (animation) {
+        card.inert = true;
+        const finish = () => {
+          if (!card.isConnected) return;
+          render();
+          const focusTarget = document.querySelector('.card-grid [data-action="favorite"]') || main;
+          focusTarget.focus({ preventScroll: true });
+        };
+        animation.finished.then(finish, finish);
+      } else { render(); main.focus({ preventScroll: true }); }
+    }
+  }
+
   document.addEventListener('click', event => {
     if (event.target.id === 'keyword') showHistory(true);
     else if (!event.target.closest('.search-wrap')) showHistory(false);
@@ -258,7 +305,7 @@
         case 'favorites-filter': filters.favoritesOnly = !filters.favoritesOnly; render(); document.querySelector('[data-action="favorites-filter"]')?.focus(); break;
         case 'favorite':
           if (!item) throw new Error('这条信息已不存在');
-          persist({ ...state, favorites: D.toggleFavorite(state.favorites, id) }, state.favorites.includes(id) ? '已取消收藏' : '已收藏，可在“我的”中查看');
+          toggleFavorite(item, trigger);
           break;
         case 'my-type': myType = trigger.dataset.value; render(); break;
         case 'set-type':
