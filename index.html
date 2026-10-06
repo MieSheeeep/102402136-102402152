@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FAF8F4">
+  <meta name="description" content="校园失物招领：集中发布、查找和管理寻物招领信息。">
+  <title>校园失物招领 · 让每一件失物都能回家</title>
+  <link rel="icon" href="assets/default-item.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/data.js" defer></script>
+  <script src="js/seed.js" defer></script>
+  <script src="js/views.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#home" aria-label="校园失物招领，回到首页">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.8"/><path d="m8 13 3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span><strong>校园失物招领</strong><small>福州大学 · 校园互助</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="#home" data-nav="home">寻物广场</a>
+        <a href="#publish" data-nav="publish">发布信息</a>
+        <a href="#my" data-nav="my">我的</a>
+      </nav>
+      <a class="header-account" href="#my" aria-label="个人中心"><span>我</span><span class="header-account-label">个人中心</span></a>
+    </div>
+  </header>
+  <div id="storage-warning" class="storage-warning" role="alert" hidden></div>
+  <main id="main" class="main-container" tabindex="-1"></main>
+  <footer class="site-footer"><span>让每一件失物都能回家。</span></footer>
+  <nav class="mobile-nav" aria-label="手机主导航">
+    <a href="#home" data-nav="home"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3zM9 20v-7h6v7" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>首页</a>
+    <a href="#publish" data-nav="publish"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>发布</a>
+    <a href="#my" data-nav="my"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 21v-2a8 8 0 0 1 16 0v2" stroke="currentColor" stroke-width="1.8"/></svg>我的</a>
+  </nav>
+  <dialog id="modal" class="modal" aria-labelledby="modal-title"></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript><p class="noscript">请启用 JavaScript 后使用失物招领功能。</p></noscript>
+</body>
+</html>
