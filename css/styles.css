@@ -154,3 +154,13 @@ button,input,select,textarea{font-family:inherit}h1,h2,h3,strong{font-weight:600
 .quick-saved:hover{color:var(--favorite);background:#fbf2f4;border-color:#dbaab3}
 .quick-saved.active:hover{background:#f3dfe4}
 @media(prefers-reduced-motion:reduce){.quick-saved .icon{transition:none}}
+/* Keep the completion filter aligned with publication types. */
+.account-list-heading{align-items:center;gap:12px}
+.my-list-filters{display:flex;flex-wrap:nowrap;align-items:center;gap:10px;min-width:0}
+.my-list-filters .type-tabs{padding:3px;gap:3px;min-width:0}
+.my-list-filters .type-tabs button{height:32px;padding:0 16px;font-size:12px;display:flex;align-items:center;justify-content:center}
+.completed-filter{height:38px;min-width:86px;flex-shrink:0;justify-content:center;padding:0 12px;font-size:12px;line-height:1;gap:6px;border-radius:9px}
+.completed-filter .icon{width:15px;height:15px}
+.completed-filter.active{background:#e6edf2;border-color:#afbec9;color:#496174;font-weight:600}
+.account-list-heading>span{padding:0;font-size:12px;white-space:nowrap}
+@media(max-width:540px){.account-list-heading{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;padding:14px 0 12px}.my-list-filters{width:100%;gap:8px}.my-list-filters .type-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));flex:1;width:auto}.my-list-filters .type-tabs button{height:30px;padding:0 6px;font-size:12px;min-width:0}.completed-filter{height:36px;min-width:80px;padding:0 10px;font-size:12px}.account-list-heading>span{justify-self:end;font-size:11px}.account-list-heading>h2{grid-row:1}.account-list-heading:has(>h2){grid-template-columns:minmax(0,1fr) auto}}
