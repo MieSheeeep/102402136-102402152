@@ -8,7 +8,7 @@ const V = require('../js/views.js');
 // Exercise the real controller's events without claiming browser/layout coverage.
 function controller() {
   const events = {}; const checked = {}; const seen = []; const mySeen = []; let formValues = [];
-  const element = name => ({ hidden: false, innerHTML: '', focus() {}, addEventListener(type, handler) { events[`${name}:${type}`] = handler; } });
+  const element = name => ({ hidden: false, innerHTML: '', dataset: {}, setAttribute() {}, focus() {}, addEventListener(type, handler) { events[`${name}:${type}`] = handler; } });
   const main = element('main'); const modal = element('modal'); const toast = element('toast'); const warning = element('warning');
   let stored = null;
   const context = {

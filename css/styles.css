@@ -63,3 +63,34 @@
 /* Keep applied filters open and bound the scrollable content height. */
 .advanced-filters.multi-filter-panel{display:flex;flex-direction:column;padding:0;gap:0;overflow:hidden}.multi-filter-panel .filter-scroll{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;padding:14px 16px;max-height:215px;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:thin;scrollbar-color:#c3cbbd transparent;scrollbar-gutter:stable}.multi-filter-panel .filter-panel-actions{padding:10px 16px;margin:0;border-top:1px solid var(--line);background:#f2f3ef;flex-shrink:0}.filter-scroll::-webkit-scrollbar{width:5px}.filter-scroll::-webkit-scrollbar-thumb{background:#c3cbbd;border-radius:4px}
 @media(max-width:540px){.advanced-filters.multi-filter-panel{padding:0;gap:0}.multi-filter-panel .filter-scroll{grid-template-columns:1fr;max-height:190px;gap:12px;padding:12px}.multi-filter-panel .filter-panel-actions{padding:9px 12px}}
+/* Shared interaction rhythm; transitions belong on the resting state too. */
+:root{--motion-fast:160ms;--motion-normal:240ms;--motion-ease:cubic-bezier(.22,1,.36,1)}
+button,button:hover,a,a:hover{transition:background-color var(--motion-fast) ease,color var(--motion-fast) ease,border-color var(--motion-fast) ease,box-shadow var(--motion-normal) ease,transform var(--motion-normal) var(--motion-ease)}
+.search-bar,input,select,textarea,.filter-chip>span,.publish-area-chip>span{transition:border-color var(--motion-fast) ease,background-color var(--motion-fast) ease,box-shadow var(--motion-normal) ease,color var(--motion-fast) ease}
+.item-card{transition:transform var(--motion-normal) var(--motion-ease),box-shadow var(--motion-normal) ease,border-color var(--motion-fast) ease}
+@media(hover:hover) and (pointer:fine){.item-card:hover{transform:translateY(-3px)}.favorite-button:hover .icon{transform:scale(1.12)}}
+.favorite-button .icon{transition:transform var(--motion-normal) var(--motion-ease)}
+.button:active,.quick-filter:active,.more-filter-button:active,.favorite-button:active{transform:scale(.97)}
+.recent-searches:not([hidden]){animation:menu-arrive 180ms var(--motion-ease)}
+.modal[open]{animation:dialog-arrive 240ms var(--motion-ease)}
+.modal[open]::backdrop{animation:backdrop-arrive 220ms ease}
+.modal.is-closing{pointer-events:none}
+.modal.is-closing::backdrop{animation:backdrop-leave 160ms ease forwards}
+.preference-switch>span:after{transition:transform var(--motion-normal) var(--motion-ease)}
+@keyframes menu-arrive{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dialog-arrive{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes backdrop-arrive{from{opacity:0}to{opacity:1}}
+@keyframes backdrop-leave{to{opacity:0}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}.item-card:hover{transform:none}}
+/* Dialogs and short feedback share a restrained visual hierarchy. */
+body.modal-open{overflow:hidden}
+.modal{max-width:430px;max-height:calc(100dvh - 40px);overflow-y:auto;border:1px solid var(--line);border-radius:18px;background:var(--paper)}
+.confirm-dialog{padding:28px}.confirm-dialog h2{font-size:21px;line-height:1.4;margin-bottom:10px;padding-right:24px;letter-spacing:-.3px}.confirm-dialog>p{font-size:13px;line-height:1.8;color:var(--muted)}
+.modal-close{width:34px;height:34px;top:12px;right:12px}.confirm-symbol{width:42px;height:42px;margin-bottom:16px;border-radius:12px;background:var(--soft-green);color:var(--green)}
+.dialog-danger .confirm-symbol{background:#f6eae7;color:#a44d40}.dialog-danger .button-danger{background:#a44d40}.dialog-danger .button-danger:hover{background:#8c3d32}
+.dialog-actions{gap:10px;margin-top:24px}.dialog-actions .button{min-height:42px;padding:10px 14px;font-size:13px}.dialog-actions .button-secondary{background:#f7f8f5}
+.team-contact{display:flex;flex-direction:column;gap:5px;margin-top:20px;padding:16px;background:var(--soft-green);border:1px solid #dce4d8;border-radius:12px}.team-contact>span{font-size:11px;color:var(--muted)}.team-contact>strong{font-size:14px;color:var(--green)}.team-contact>p{font-size:13px;user-select:text;overflow-wrap:anywhere}.team-contact b{font-weight:600}
+.contact-checklist{margin-top:16px}.contact-checklist strong{font-size:12px;font-weight:600}.contact-checklist p{font-size:12px;margin-top:5px;color:var(--muted);line-height:1.8}.contact-checklist small{font-size:11px;color:var(--muted)}
+.toast{display:flex;align-items:center;gap:10px;padding:12px 14px 12px 16px;max-width:min(460px,calc(100% - 32px));width:max-content;border:1px solid #dce4d8;background:#f3f7f0;color:#3f5947;border-radius:12px;text-align:left;font-size:13px;line-height:1.6;box-shadow:0 8px 28px #30373516}
+.toast>span{min-width:0;overflow-wrap:anywhere}.toast>.icon{width:18px;height:18px}.toast>button{display:grid;place-items:center;width:28px;height:28px;flex-shrink:0;border-radius:7px;opacity:.65}.toast>button:hover{background:#3037350a;opacity:1}.toast>button .icon{width:15px;height:15px}.toast[data-kind=error]{background:#fbf0ed;border-color:#ead1cb;color:#944839}.toast[data-kind=info]{background:#edf2f6;border-color:#d5dfe8;color:#4f6579}
+@media(max-width:540px){.modal{width:calc(100% - 32px);max-height:calc(100dvh - 32px)}.confirm-dialog{padding:24px 20px}.confirm-dialog h2{font-size:20px}.dialog-actions .button{font-size:12px;white-space:normal}.toast{bottom:88px;font-size:12px;gap:8px}}

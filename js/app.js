@@ -24,19 +24,30 @@
   let warningText = '';
   let currentRoute = { page: 'home', id: '' };
   let storage;
+  const motionEase = 'cubic-bezier(.22, 1, .36, 1)';
+  const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  function animate(element, frames, duration = 240) {
+    if (!element?.animate || reducedMotion()) return null;
+    element.getAnimations().forEach(animation => animation.cancel());
+    return element.animate(frames, { duration, easing: motionEase });
+  }
   try { storage = window.localStorage; }
   catch (_) { storage = { getItem() { throw new Error('unavailable'); }, setItem() { throw new Error('unavailable'); } }; }
   const store = D.createStore(storage, window.CampusSeed);
-  try { state = store.load(); store.save(state); }
+  try { state = store.load(); state = window.CampusSeed.upgrade(state); store.save(state); }
   catch (error) { state = state || window.CampusSeed(); warningText = error.message; }
 
   filters = defaults();
 
-  function toast(message) {
+  function toast(message, kind = 'success') {
     clearTimeout(toastTimer);
-    toastEl.textContent = message;
+    toastEl.innerHTML = `${V.icon(kind === 'success' ? 'check' : kind === 'error' ? 'shield' : 'clock')}<span>${V.esc(message)}</span><button data-action="dismiss-toast" aria-label="关闭提示">${V.icon('close')}</button>`;
+    toastEl.dataset.kind = kind;
+    toastEl.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+    toastEl.setAttribute('aria-live', kind === 'error' ? 'assertive' : 'polite');
     toastEl.hidden = false;
-    toastTimer = setTimeout(() => { toastEl.hidden = true; }, 4500);
+    animate(toastEl, [{ opacity: 0, transform: 'translate(-50%, 8px)' }, { opacity: 1, transform: 'translate(-50%, 0)' }]);
+    toastTimer = setTimeout(() => { toastEl.hidden = true; }, kind === 'success' ? 3200 : 5500);
   }
 
   function showWarning() {
@@ -66,6 +77,9 @@
   }
 
   function render() {
+    const oldPanel = document.querySelector('#advanced-filters');
+    const wasOpen = oldPanel && !oldPanel.hidden;
+    const oldList = document.querySelector('.card-grid')?.innerHTML;
     const filterScroll = document.querySelector('#filter-scroll')?.scrollTop || 0;
     const nextRoute = route();
     const changed = nextRoute.page !== currentRoute.page || nextRoute.id !== currentRoute.id;
@@ -88,7 +102,7 @@
       case 'edit':
         if (!item || item.ownerId !== ownerId) {
           main.innerHTML = V.detail(item, state.favorites, ownerId);
-          toast(item ? '只能编辑本人发布的信息' : '这条信息已不存在');
+          toast(item ? '只能编辑本人发布的信息' : '这条信息已不存在', 'error');
         } else {
           if (editingId !== item.id || changed) { draft = { ...item }; errors = {}; editingId = item.id; }
           main.innerHTML = V.form(draft, errors, true);
@@ -105,6 +119,33 @@
     if (scrollArea && !changed) scrollArea.scrollTop = filterScroll;
     showWarning();
     if (changed) { window.scrollTo({ top: 0, behavior: 'instant' }); main.focus({ preventScroll: true }); }
+    if (changed) {
+      animate(main, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], 280);
+    } else {
+      const panel = document.querySelector('#advanced-filters');
+      if (panel?.animate && !reducedMotion()) {
+        if (!wasOpen && !panel.hidden) {
+          animate(panel, [{ height: '0px', opacity: 0 }, { height: `${panel.offsetHeight}px`, opacity: 1 }], 280);
+        } else if (wasOpen && panel.hidden) {
+          // Preserve the outgoing panel while the new state is already closed.
+          const outgoing = oldPanel.cloneNode(true);
+          outgoing.inert = true;
+          outgoing.setAttribute('aria-hidden', 'true');
+          panel.replaceWith(outgoing);
+          const height = outgoing.offsetHeight;
+          const style = window.getComputedStyle(outgoing);
+          const animation = animate(outgoing, [
+            { height: `${height}px`, opacity: 1, marginTop: style.marginTop, marginBottom: style.marginBottom },
+            { height: '0px', opacity: 0, marginTop: '0px', marginBottom: '0px' }
+          ], 220);
+          animation.finished.then(() => outgoing.replaceWith(panel), () => outgoing.replaceWith(panel));
+        }
+      }
+      const list = document.querySelector('.card-grid');
+      if (list && list.innerHTML !== oldList) {
+        animate(list, [{ opacity: .45, transform: 'translateY(4px)' }, { opacity: 1, transform: 'translateY(0)' }], 200);
+      }
+    }
   }
 
   function persist(next, message, target) {
@@ -114,7 +155,7 @@
       if (target) navigate(target); else render();
       if (message) toast(message);
       return true;
-    } catch (error) { toast(error.message); return false; }
+    } catch (error) { toast(error.message, 'error'); return false; }
   }
 
   function showHistory(open) {
@@ -131,7 +172,7 @@
     if (filters.keyword && state.preferences?.saveSearchHistory !== false) {
       const next = { ...state, recentSearches: D.rememberSearch(state.recentSearches || [], filters.keyword) };
       try { store.save(next); state = next; }
-      catch (error) { toast('搜索正常，最近搜索保存失败：' + error.message); }
+      catch (error) { toast('搜索记录未保存：' + error.message, 'error'); }
     }
     render();
   }
@@ -139,11 +180,23 @@
   function openModal(content) {
     modalTrigger = document.activeElement;
     modal.innerHTML = content;
+    modal.setAttribute('aria-describedby', 'modal-description');
+    document.body.classList.add('modal-open');
     modal.showModal();
+    modal.classList.remove('is-closing');
   }
 
-  function closeModal() { modal.close(); }
+  function closeModal() {
+    if (!modal.open || modal.classList.contains('is-closing')) return;
+    modal.classList.add('is-closing');
+    modal.querySelectorAll('button').forEach(button => { button.disabled = true; });
+    const animation = animate(modal, [{ opacity: 1, transform: 'translateY(0) scale(1)' }, { opacity: 0, transform: 'translateY(6px) scale(.98)' }], 160);
+    const finish = () => { modal.classList.remove('is-closing'); modal.close(); };
+    if (animation) animation.finished.then(finish, finish); else finish();
+  }
+  modal.addEventListener('cancel', event => { event.preventDefault(); closeModal(); });
   modal.addEventListener('close', () => {
+    document.body.classList.remove('modal-open');
     if (modalTrigger?.isConnected) modalTrigger.focus();
     else main.focus({ preventScroll: true });
   });
@@ -162,7 +215,7 @@
         const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
         contact.focus();
       }
-      toast('自动复制未成功，请长按或选中联系方式手动复制');
+      toast('请长按或选中联系方式复制', 'info');
     }
   }
 
@@ -176,6 +229,7 @@
     const item = state.items.find(post => post.id === id);
     try {
       switch (action) {
+        case 'dismiss-toast': clearTimeout(toastTimer); toastEl.hidden = true; break;
         case 'type': filters.type = filters.type === trigger.dataset.value ? 'all' : trigger.dataset.value; render(); document.querySelector(`[data-action="type"][data-value="${trigger.dataset.value}"]`)?.focus(); break;
         case 'preference-sort':
           if (persist({ ...state, preferences: { saveSearchHistory: true, ...state.preferences, sort: trigger.dataset.value } }, '默认排序已保存')) {
@@ -187,7 +241,7 @@
         case 'notice-prev': moveNotice(noticeIndex() - 1); break;
         case 'notice-next': moveNotice(noticeIndex() + 1); break;
         case 'settings-clear-history': persist({ ...state, recentSearches: [] }, '搜索记录已清空'); break;
-        case 'clear-favorites': openModal(V.confirmation('清空全部收藏？', '只会清除收藏，不会删除发布的信息。', 'confirm-clear-favorites', '')); break;
+        case 'clear-favorites': openModal(V.confirmation('清空全部收藏？', '清空后需要重新收藏，已发布的信息会保留。', 'confirm-clear-favorites', '')); break;
         case 'confirm-clear-favorites': if (persist({ ...state, favorites: [] }, '收藏已清空')) closeModal(); break;
         case 'recent-keyword': search(trigger.dataset.value); break;
         case 'clear-history':
@@ -217,16 +271,16 @@
         case 'close-modal': closeModal(); break;
         case 'complete':
           if (!item || item.ownerId !== ownerId) throw new Error('只能管理本人发布的信息');
-          openModal(V.confirmation(item.type === 'lost' ? '确认物品已经找到？' : '确认物品已经归还？', `“${item.name}”将标记为${item.type === 'lost' ? '已找到' : '已归还'}，首页和详情会同步显示。这表示本次寻找已经结束。`, 'confirm-complete', id));
+          openModal(V.confirmation(item.type === 'lost' ? '物品已经找到了？' : '物品已经归还了？', `“${item.name}”将标记为${item.type === 'lost' ? '已找到' : '已归还'}。之后可以在“我的发布”中恢复。`, 'confirm-complete', id));
           break;
         case 'confirm-complete': {
           const next = { ...state, items: D.completeItem(state.items, id, ownerId) };
-          if (persist(next, '状态已更新，谢谢你及时结束这条信息')) closeModal();
+          if (persist(next, item?.type === 'lost' ? '已标记为找到' : '已标记为归还')) closeModal();
           break;
         }
         case 'reopen':
           if (!item || item.ownerId !== ownerId) throw new Error('只能管理本人发布的信息');
-          openModal(V.confirmation(item.type === 'lost' ? '确认取消已找到？' : '确认取消已归还？', `“${item.name}”将恢复为${item.type === 'lost' ? '寻找中' : '待认领'}，首页和详情会同步更新。`, 'confirm-reopen', id));
+          openModal(V.confirmation(item.type === 'lost' ? '取消已找到状态？' : '取消已归还状态？', `“${item.name}”将恢复为${item.type === 'lost' ? '寻找中' : '待认领'}。`, 'confirm-reopen', id));
           break;
         case 'confirm-reopen': {
           const next = { ...state, items: D.reopenItem(state.items, id, ownerId) };
@@ -235,7 +289,7 @@
         }
         case 'delete':
           if (!item || item.ownerId !== ownerId) throw new Error('只能管理本人发布的信息');
-          openModal(V.confirmation('删除这条信息？', `“${item.name}”将从当前浏览器中的列表和收藏中移除，删除后无法撤销。`, 'confirm-delete', id, true));
+          openModal(V.confirmation('删除这条信息？', `“${item.name}”及其收藏记录将被移除，删除后无法恢复。`, 'confirm-delete', id, true));
           break;
         case 'confirm-delete': {
           const next = { ...state, items: D.deleteItem(state.items, id, ownerId), favorites: state.favorites.filter(saved => saved !== id) };
@@ -249,7 +303,7 @@
           state = store.reset(); warningText = ''; filters = defaults(); advancedOpen = false; filterDraft = null; filterError = ''; myType = 'all'; myStatus = 'all'; draft = { type: 'lost' }; errors = {}; editingId = null;
           closeModal(); navigate('home'); toast('数据已重置'); break;
       }
-    } catch (error) { toast(error.message); }
+    } catch (error) { toast(error.message, 'error'); }
   });
 
   function noticeIndex() {
@@ -338,7 +392,7 @@
         const next = { ...state, items: [record, ...state.items] };
         if (persist(next, '', `success/${encodeURIComponent(record.id)}`)) { myType = 'all'; myStatus = 'all'; draft = { type: 'lost' }; errors = {}; }
       }
-    } catch (error) { toast(error.message); }
+    } catch (error) { toast(error.message, 'error'); }
     finally { submitting = false; if (submit.isConnected) submit.disabled = false; }
   });
   main.addEventListener('focusin', event => {

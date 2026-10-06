@@ -24,9 +24,39 @@ test('default records can be restored through the same validated store', () => {
   const initial = JSON.parse(JSON.stringify(context.window.CampusSeed()));
   const store = D.createStore({ getItem: () => JSON.stringify(initial), setItem: () => {} }, () => initial);
   const result = store.load();
-  assert.equal(result.items.length, 6);
+  assert.equal(result.items.length, 7);
   assert.equal(result.items.filter(record => record.ownerId === 'me').length, 3);
   assert.ok(result.items.every(record => record.isDemo && record.contact === '微信：campus_demo'));
+});
+
+test('every urgent notice links to a complete record, including the third notice', () => {
+  const context = { window: {}, Date };
+  vm.runInNewContext(fs.readFileSync(require.resolve('../js/seed.js'), 'utf8'), context);
+  const state = context.window.CampusSeed();
+  const board = V.home(state, {}).split('<section class="square')[0];
+  const links = [...board.matchAll(/href="#detail\/([^"]+)"/g)].map(match => match[1]);
+  assert.equal(links.length, 3);
+  for (const id of links) {
+    const post = state.items.find(record => record.id === id);
+    assert.ok(post && post.description && post.contact);
+    assert.ok(V.detail(post, [], 'me').includes('复制联系方式'));
+  }
+  assert.equal(state.items.find(post => post.id === links[2]).name, '黑色U盘');
+});
+
+test('notice upgrade preserves saved data and only adds the missing record once', () => {
+  const context = { window: {}, Date };
+  vm.runInNewContext(fs.readFileSync(require.resolve('../js/seed.js'), 'utf8'), context);
+  const old = { version: 1, items: [item], favorites: ['x'], recentSearches: ['雨伞'] };
+  const upgraded = context.window.CampusSeed.upgrade(old);
+  assert.equal(old.items.length, 1);
+  assert.equal(upgraded.items.length, 2);
+  assert.equal(upgraded.items[0], item);
+  assert.equal(upgraded.favorites, old.favorites);
+  assert.equal(upgraded.recentSearches, old.recentSearches);
+  assert.equal(context.window.CampusSeed.upgrade(upgraded), upgraded);
+  const deleted = { ...upgraded, items: [item] };
+  assert.equal(context.window.CampusSeed.upgrade(deleted).items.length, 1);
 });
 
 
