@@ -147,3 +147,10 @@ button,input,select,textarea{font-family:inherit}h1,h2,h3,strong{font-weight:600
 .item-card.has-favorite:hover{border-color:#bc7886;box-shadow:inset 0 0 0 1px #b6536226,0 5px 16px #6453470a}
 .card-info{padding-right:34px}
 @media(prefers-reduced-motion:reduce){[data-action=favorite] .icon{transition:none}}
+.quick-saved{color:var(--favorite)}
+.quick-saved .icon{fill:transparent;stroke:var(--favorite);transition:fill 180ms ease}
+.quick-saved.active{color:var(--favorite);background:#f7e9ec;border-color:#dbaab3}
+.quick-saved.active .icon{fill:var(--favorite)}
+.quick-saved:hover{color:var(--favorite);background:#fbf2f4;border-color:#dbaab3}
+.quick-saved.active:hover{background:#f3dfe4}
+@media(prefers-reduced-motion:reduce){.quick-saved .icon{transition:none}}
