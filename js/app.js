@@ -13,6 +13,7 @@
   let advancedOpen = false;
   let filterDraft = null;
   let filterError = '';
+  let filterMotionSerial = 0;
   let myStatus = 'all';
   let myType = 'all';
   let draft = { type: 'lost', name: '', category: '', locationGroup: '', locationDetail: '', occurredAt: '', contact: '', description: '' };
@@ -256,6 +257,50 @@
     const finish = () => { if (dates.isConnected && filterDraft) dates.hidden = filterDraft.timeRange !== 'custom'; };
     if (animation) animation.finished.then(finish, () => {}); else finish();
   }
+
+  function toggleFilterPanel() {
+    const panel = document.querySelector('#advanced-filters');
+    advancedOpen = !advancedOpen;
+    filterError = '';
+    filterDraft = advancedOpen ? { ...filters, locations: [...filters.locations], categories: [...filters.categories] } : null;
+    if (!panel?.animate) { render(); return; }
+    const serial = ++filterMotionSerial;
+    const opening = advancedOpen;
+    const wasHidden = panel.hidden;
+    const style = window.getComputedStyle(panel);
+    const clip = wasHidden ? 'inset(0 0 100% 0)' : style.clipPath;
+    const opacity = wasHidden ? 0 : Number(style.opacity);
+    const followers = [...panel.parentElement.children].filter(node => node !== panel && (node.classList.contains('results-heading') || node.classList.contains('card-grid') || node.classList.contains('empty-state')));
+    const positions = followers.map(node => node.getBoundingClientRect().top);
+    panel.getAnimations().forEach(animation => animation.cancel());
+    followers.forEach(node => node.getAnimations().forEach(animation => animation.cancel()));
+    panel.hidden = false;
+    panel.inert = !opening;
+    panel.setAttribute('aria-hidden', String(!opening));
+    if (opening) syncFilterDraft();
+    const button = document.querySelector('[data-action="advanced-filters"]');
+    button.setAttribute('aria-expanded', String(opening));
+    const count = Boolean(filters.categories?.length || filters.locations?.length || filters.timeRange !== 'all' || filters.sort === 'oldest');
+    button.classList.toggle('active', opening || count);
+    const finalStyle = window.getComputedStyle(panel);
+    const distance = panel.offsetHeight + parseFloat(finalStyle.marginTop || 0) + parseFloat(finalStyle.marginBottom || 0);
+    const duration = opening ? 220 : 180;
+    // Move existing content on the compositor instead of relaying it out each frame.
+    followers.forEach((node, index) => {
+      const delta = positions[index] - node.getBoundingClientRect().top;
+      animate(node, [{ transform: `translateY(${delta}px)` }, { transform: `translateY(${opening ? 0 : -distance}px)` }], duration);
+    });
+    const animation = animate(panel, [
+      { clipPath: clip === 'none' ? 'inset(0 0 0 0)' : clip, opacity },
+      { clipPath: opening ? 'inset(0 0 0 0)' : 'inset(0 0 100% 0)', opacity: opening ? 1 : 0 }
+    ], duration);
+    const finish = () => {
+      if (serial !== filterMotionSerial || !panel.isConnected) return;
+      panel.hidden = !advancedOpen;
+    };
+    if (animation) animation.finished.then(finish, () => {}); else finish();
+    button.focus({ preventScroll: true });
+  }
   modal.addEventListener('cancel', event => { event.preventDefault(); closeModal(); });
   modal.addEventListener('close', () => {
     document.body.classList.remove('modal-open');
@@ -356,10 +401,7 @@
         case 'clear-history':
           if (persist({ ...state, recentSearches: [] })) document.querySelector('#keyword')?.focus();
           break;
-        case 'advanced-filters':
-          advancedOpen = !advancedOpen; filterError = '';
-          filterDraft = advancedOpen ? { ...filters, locations: [...filters.locations], categories: [...filters.categories] } : null;
-          render(); document.querySelector('[data-action="advanced-filters"]')?.focus(); break;
+        case 'advanced-filters': toggleFilterPanel(); break;
         case 'reset-pending': filterDraft = defaults(); filterError = ''; syncFilterDraft(); document.querySelector('[data-action="reset-pending"]')?.focus({ preventScroll: true }); break;
         case 'time-range': filterDraft.timeRange = trigger.dataset.value; filterError = ''; syncFilterDraft(); document.querySelector(`[data-action="time-range"][data-value="${trigger.dataset.value}"]`)?.focus({ preventScroll: true }); break;
         case 'my-status': myStatus = myStatus === 'completed' ? 'all' : 'completed'; render(); document.querySelector('[data-action="my-status"]')?.focus(); break;
