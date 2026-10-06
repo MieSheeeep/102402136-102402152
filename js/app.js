@@ -79,7 +79,10 @@
   function render() {
     const oldPanel = document.querySelector('#advanced-filters');
     const wasOpen = oldPanel && !oldPanel.hidden;
+    const panelHeight = wasOpen ? oldPanel.getBoundingClientRect?.().height || 0 : 0;
     const oldList = document.querySelector('.card-grid')?.innerHTML;
+    const oldQuick = document.querySelector('.compact-filters');
+    const noticeScroll = document.querySelector('#urgent-track')?.scrollLeft || 0;
     const filterScroll = document.querySelector('#filter-scroll')?.scrollTop || 0;
     const nextRoute = route();
     const changed = nextRoute.page !== currentRoute.page || nextRoute.id !== currentRoute.id;
@@ -115,6 +118,33 @@
       case 'success': main.innerHTML = item ? V.success(item) : V.detail(null, state.favorites, ownerId); break;
       default: main.innerHTML = V.home(state, filters, { advancedOpen, filterDraft, filterError });
     }
+    const freshPanel = document.querySelector('#advanced-filters');
+    const freshQuick = document.querySelector('.compact-filters');
+    if (!changed && oldQuick && freshQuick?.replaceWith) {
+      freshQuick.querySelectorAll('[data-action]').forEach(fresh => {
+        const existing = [...oldQuick.querySelectorAll('[data-action]')].find(button => button.dataset.action === fresh.dataset.action && button.dataset.value === fresh.dataset.value);
+        if (!existing) return;
+        existing.className = fresh.className;
+        ['aria-pressed', 'aria-expanded', 'aria-label'].forEach(name => {
+          const value = fresh.getAttribute(name);
+          if (value === null) existing.removeAttribute(name); else existing.setAttribute(name, value);
+        });
+        const oldCount = existing.querySelector('.filter-count');
+        const newCount = fresh.querySelector('.filter-count');
+        if (oldCount && newCount) oldCount.textContent = newCount.textContent;
+        else if (oldCount) oldCount.remove();
+        else if (newCount) existing.append(newCount.cloneNode(true));
+      });
+      freshQuick.replaceWith(oldQuick);
+    }
+    if (!changed && advancedOpen && wasOpen && !oldPanel.inert && freshPanel?.replaceWith) {
+      const error = oldPanel.querySelector('#filter-error');
+      error.textContent = filterError;
+      error.hidden = !filterError;
+      freshPanel.replaceWith(oldPanel);
+    }
+    const track = document.querySelector('#urgent-track');
+    if (track && !changed) track.scrollLeft = noticeScroll;
     const scrollArea = document.querySelector('#filter-scroll');
     if (scrollArea && !changed) scrollArea.scrollTop = filterScroll;
     showWarning();
@@ -124,15 +154,20 @@
     } else {
       const panel = document.querySelector('#advanced-filters');
       if (panel?.animate && !reducedMotion()) {
-        if (!wasOpen && !panel.hidden) {
-          animate(panel, [{ height: '0px', opacity: 0 }, { height: `${panel.offsetHeight}px`, opacity: 1 }], 280);
+        if ((!wasOpen || oldPanel.inert) && !panel.hidden) {
+          const style = window.getComputedStyle(panel);
+          animate(panel, [
+            { height: `${panelHeight}px`, opacity: .2, marginTop: '0px', marginBottom: '0px' },
+            { height: `${panel.offsetHeight}px`, opacity: 1, marginTop: style.marginTop, marginBottom: style.marginBottom }
+          ], 260);
         } else if (wasOpen && panel.hidden) {
           // Preserve the outgoing panel while the new state is already closed.
           const outgoing = oldPanel.cloneNode(true);
           outgoing.inert = true;
           outgoing.setAttribute('aria-hidden', 'true');
           panel.replaceWith(outgoing);
-          const height = outgoing.offsetHeight;
+          const height = panelHeight;
+          outgoing.querySelector('#filter-scroll').scrollTop = filterScroll;
           const style = window.getComputedStyle(outgoing);
           const animation = animate(outgoing, [
             { height: `${height}px`, opacity: 1, marginTop: style.marginTop, marginBottom: style.marginBottom },
@@ -193,6 +228,33 @@
     const animation = animate(modal, [{ opacity: 1, transform: 'translateY(0) scale(1)' }, { opacity: 0, transform: 'translateY(6px) scale(.98)' }], 160);
     const finish = () => { modal.classList.remove('is-closing'); modal.close(); };
     if (animation) animation.finished.then(finish, finish); else finish();
+  }
+
+  function syncFilterDraft() {
+    const panel = document.querySelector('#advanced-filters');
+    if (!panel?.querySelector) { render(); return; }
+    panel.querySelectorAll('[data-multi]').forEach(input => { input.checked = filterDraft[input.dataset.multi].includes(input.value); });
+    panel.querySelectorAll('[data-pending]').forEach(input => { input.value = filterDraft[input.dataset.pending]; });
+    panel.querySelectorAll('[data-action="time-range"]').forEach(button => {
+      const active = button.dataset.value === filterDraft.timeRange;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    const error = panel.querySelector('#filter-error'); error.hidden = true;
+    const dates = panel.querySelector('.custom-dates');
+    const show = filterDraft.timeRange === 'custom';
+    const height = dates.hidden ? 0 : dates.getBoundingClientRect().height;
+    dates.getAnimations().forEach(animation => animation.cancel());
+    if (show) dates.hidden = false;
+    if (!height && !show) return;
+    dates.inert = !show;
+    dates.setAttribute('aria-hidden', String(!show));
+    const animation = animate(dates, [
+      { height: `${height}px`, opacity: height ? 1 : 0, marginTop: height ? '9px' : '0px' },
+      { height: show ? `${dates.offsetHeight}px` : '0px', opacity: show ? 1 : 0, marginTop: show ? '9px' : '0px' }
+    ], 200);
+    const finish = () => { if (dates.isConnected && filterDraft) dates.hidden = filterDraft.timeRange !== 'custom'; };
+    if (animation) animation.finished.then(finish, () => {}); else finish();
   }
   modal.addEventListener('cancel', event => { event.preventDefault(); closeModal(); });
   modal.addEventListener('close', () => {
@@ -298,8 +360,8 @@
           advancedOpen = !advancedOpen; filterError = '';
           filterDraft = advancedOpen ? { ...filters, locations: [...filters.locations], categories: [...filters.categories] } : null;
           render(); document.querySelector('[data-action="advanced-filters"]')?.focus(); break;
-        case 'reset-pending': filterDraft = defaults(); filterError = ''; render(); document.querySelector('[data-action="reset-pending"]')?.focus(); break;
-        case 'time-range': filterDraft.timeRange = trigger.dataset.value; filterError = ''; render(); document.querySelector(`[data-action="time-range"][data-value="${trigger.dataset.value}"]`)?.focus(); break;
+        case 'reset-pending': filterDraft = defaults(); filterError = ''; syncFilterDraft(); document.querySelector('[data-action="reset-pending"]')?.focus({ preventScroll: true }); break;
+        case 'time-range': filterDraft.timeRange = trigger.dataset.value; filterError = ''; syncFilterDraft(); document.querySelector(`[data-action="time-range"][data-value="${trigger.dataset.value}"]`)?.focus({ preventScroll: true }); break;
         case 'my-status': myStatus = myStatus === 'completed' ? 'all' : 'completed'; render(); document.querySelector('[data-action="my-status"]')?.focus(); break;
         case 'clear-filters': filters = defaults(); advancedOpen = false; filterDraft = null; filterError = ''; navigate('home'); break;
         case 'favorites-filter': filters.favoritesOnly = !filters.favoritesOnly; render(); document.querySelector('[data-action="favorites-filter"]')?.focus(); break;

@@ -100,3 +100,12 @@ body.modal-open{overflow:hidden}
 [data-action=favorite].is-favorite{color:var(--orange)}
 .detail-actions [data-action=favorite].is-favorite{background:var(--soft-orange);border-color:#dfc7ba}
 @media(prefers-reduced-motion:reduce){[data-action=favorite] .icon{transition:none}}
+/* Filter controls update in place, keeping scroll and focus stable. */
+.filter-chip>span,.range-buttons button,.quick-filter,.more-filter-button{transition:background-color 180ms ease,border-color 180ms ease,color 180ms ease,box-shadow 180ms ease,transform 200ms var(--motion-ease)}
+.filter-chip .icon{transition:opacity 180ms ease,transform 220ms var(--motion-ease);transform:scale(.65)}
+.filter-chip input:checked+span .icon{transform:scale(1)}
+.filter-chip:active>span,.range-buttons button:active{transform:scale(.97)}
+.more-filter-button .icon{transition:transform 240ms var(--motion-ease)}
+.more-filter-button[aria-expanded=true] .icon{transform:rotate(-12deg)}
+.custom-dates{overflow:hidden;min-height:0}
+@media(prefers-reduced-motion:reduce){.filter-chip>span,.range-buttons button,.quick-filter,.more-filter-button,.filter-chip .icon,.more-filter-button .icon{transition:none}}
