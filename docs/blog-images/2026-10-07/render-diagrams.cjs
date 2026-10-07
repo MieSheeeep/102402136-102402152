@@ -42,9 +42,9 @@ const data = svg(1060, 780,
   `<path d="M525,540 L525,610 L175,610 L175,540" fill="none" stroke="#678577" stroke-width="3" marker-end="url(#arrow)"/>` +
   text(350, 650, '接口返回记录，页面更新展示', 20) +
   text(530, 730, '两种数据不自动互通；演示内容仅在需要初始化时写入', 20));
-const store = (x, y, lines) => `<path d="M${x + 235},${y} H${x} V${y + 110} H${x + 235}" fill="#f0f3f7" stroke="#9facbb" stroke-width="2"/>${lines.map((line, i) => text(x + 117, y + 42 + i * 31, line, 21)).join('')}`;
+const store = (x, y, lines) => `<path d="M${x + 235},${y} H${x} V${y + 110} H${x + 235}" fill="#f0f3f7" stroke="#9facbb" stroke-width="2"/>${lines.map((line, i) => text(x + 117, y + 62 - (lines.length - 1) * 16 + i * 32, line, 21)).join('')}`;
 const requestRow = (y, actor, process, database, input, output, write, result) =>
-  `<rect x="28" y="${y}" width="180" height="110" fill="#f8eee3" stroke="#c9d7ce"/>${text(118, y + 62, actor[0])}` +
+  `<rect x="28" y="${y}" width="180" height="110" fill="#f8eee3" stroke="#c9d7ce"/>${actor.map((line, i) => text(118, y + 62 - (actor.length - 1) * 16 + i * 32, line)).join('')}` +
   box(432, y, 298, 110, process) + store(954, y, database) +
   arrow(208, y + 34, 432, y + 34) + text(320, y + 22, input, 19) +
   arrow(432, y + 83, 208, y + 83) + text(320, y + 108, output, 19) +
@@ -60,8 +60,19 @@ const requests = svg(1220, 940,
   `<line x1="28" y1="827" x2="1189" y2="827" stroke="#d5dfd6"/>` +
   text(610, 865, '当前网页从 /api/state 读取物品，在 data.js 中完成搜索与筛选；接口也提供查询入口。', 20) +
   text(610, 902, '同名D1代表同一个物品表。收藏只保存关联编号，显示时读取物品内容。', 20));
+const support = svg(1220, 960,
+  text(610, 52, '配套功能的数据流 · 完整本地应用', 30) +
+  text(610, 94, '使用与业务图相同的符号；每行展开一类功能的主要数据去向', 21) +
+  requestRow(145, ['注册或登录者'], ['P5 账号与会话', '输入校验、密码验证'], ['D3 用户与会话表', '密码哈希／会话摘要'], '账号、密码等', '当前用户、会话结果', '账号及会话记录', '用户、有效会话') +
+  requestRow(320, ['本人或', '查看主页的同学'], ['P6 资料与公开主页', '归属校验、统计发布'], ['D3 用户表', 'D1 物品表'], '资料或用户编号', '本人资料／公开主页', '资料、发布者编号', '资料、发布记录') +
+  requestRow(495, ['上传图片的用户'], ['P7 图片上传', '内容校验、WebP转换'], ['D4 图片归属表', '与上传文件目录'], '图片文件', '图片地址或错误', '转换后的图片、归属', '文件及归属记录') +
+  requestRow(670, ['发布者、', '管理员、浏览者'], ['P8 急寻与公告', '本人申请、审核及展示'], ['D5 申请与公告表', '读取D1物品状态'], '申请、审核或查询', '提交结果／有效公告', '申请、公告、物品编号', '申请、公告及状态') +
+  `<line x1="28" y1="827" x2="1189" y2="827" stroke="#d5dfd6"/>` +
+  text(610, 865, '图片上传返回地址后，发布或头像请求再引用；两个请求目前不属于同一事务。', 20) +
+  text(610, 902, '批准公告时，写入公告与移除申请在同一事务中完成；展示还检查到期时间和物品状态。', 20) +
+  text(610, 938, 'D3、D4、D5按用途合并相关表或文件；具体表名及关联关系见正文。', 19));
 (async () => {
-  for (const [name, content] of [['core-flow', flow], ['data-flow', data], ['request-data-flow', requests]]) {
+  for (const [name, content] of [['core-flow', flow], ['data-flow', data], ['request-data-flow', requests], ['support-data-flow', support]]) {
     fs.writeFileSync(path.join(__dirname, `${name}.svg`), content);
     await sharp(Buffer.from(content)).png().toFile(path.join(__dirname, `${name}.png`));
   }
