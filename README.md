@@ -74,8 +74,9 @@ js/api.js                    HTTP 接口客户端与 CSRF
 server/                      本地 API、SQLite、图片上传、管理员与备份
 e2e/                         Chrome 真实多账号端到端测试
 tests/data.test.cjs          自动化业务测试
-tests/security.test.cjs      用户文本、显示语义与示例数据检查
-tests/interactions.test.cjs  筛选草稿、应用与日期错误的控制器交互检查
+tests/security.test.cjs      用户文本及表单属性转义检查
+tests/backend.test.cjs       多账号、权限、数据库和图片接口测试
+tests/demo-seed.test.cjs     演示账号与初始内容持久化测试
 package.json                Mocha 测试依赖与开发检查命令
 package-lock.json           固定运行与开发依赖版本
 docs/                       来源、需求、实现计划和验证记录

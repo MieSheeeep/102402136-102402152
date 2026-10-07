@@ -1,5 +1,8 @@
 # 项目文档
 
+- [程序实现作业博客](2026-10-07-implementation-blog.md)：按评分项整理的正文与实际页面配图。
+- [博客发布前核对](blog-publish-checklist.md)：待补的真实分工、PSP、PR与提交事项。
+
 - [完整本地应用与接口](local-backend.md)：真实登录、数据库、图片、公开主页、小程序接口接入、管理员与备份。
 - [本地后端验收记录](2026-10-07-backend-verification.md)：真实多账号、数据库备份恢复及浏览器走查结果。
 - [上线升级现状与决策](production-readiness-audit.md)：升级前缺口、已确认方案及范围。
