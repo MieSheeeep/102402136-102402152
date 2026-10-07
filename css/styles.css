@@ -202,3 +202,6 @@ button,input,select,textarea{font-family:inherit}h1,h2,h3,strong{font-weight:600
 .recovery-code { display: block; overflow-wrap: anywhere; user-select: all; padding: 18px; margin: 20px 0; background: #f2f5ee; border-radius: 12px; font-size: 15px; line-height: 1.7; }
 .notice-empty { padding: 14px 0; color: #747b71; }
 @media (max-width: 600px) { .auth-page { margin: 22px auto; padding: 22px; } .public-profile .profile { align-items: flex-start; } .public-profile .profile h1 { font-size: 22px; } }
+
+/* Keep personal details compact in the account overview. */
+.account-top .profile{min-width:0;align-items:flex-start}.account-top .profile>div{min-width:0}.account-top .profile .profile-campus{margin:4px 0;display:flex;align-items:center;gap:5px}.account-top .profile .profile-campus .icon{width:14px;height:14px}.account-top .profile .profile-bio{max-width:38em;margin:6px 0 8px;line-height:1.7;overflow-wrap:anywhere}.account-top .user-avatar{flex-shrink:0}
