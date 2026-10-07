@@ -69,6 +69,7 @@ describe('网页真实多账号流程（Chrome）', function () {
         await page.setViewportSize({ width, height: 844 });
         for (const route of ['home', 'publish', 'my', 'settings', 'login', 'register', 'recover']) {
           await go(page, route); await fixedNav();
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false, `${width}px ${route} horizontal overflow`);
           await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
           await fixedNav();
         }
@@ -170,7 +171,7 @@ describe('网页真实多账号流程（Chrome）', function () {
     await go(b, `detail/${itemId}`); assert.equal(await b.locator('#detail-heading').innerText(), '编辑后的书包'); assert.match(await b.locator('.detail-picture img').getAttribute('src'), /uploads/);
   });
   it('new pages fit a narrow viewport and have no JavaScript or CSP errors', async () => {
-    for (const route of ['settings', 'my', `user/${userId}`, `detail/${itemId}`]) { await go(b, route); assert.equal(await b.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, route); if (route === 'settings' || route.startsWith('user/')) { await b.waitForTimeout(350); await b.screenshot({ path: join(tmpdir(), route === 'settings' ? 'campus-settings-full.png' : 'campus-profile-full.png'), fullPage: true }); } }
+    for (const route of ['publish', 'settings', 'my', `user/${userId}`, `detail/${itemId}`]) { await go(b, route); assert.equal(await b.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false, route); if (route === 'settings' || route.startsWith('user/')) { await b.waitForTimeout(350); await b.screenshot({ path: join(tmpdir(), route === 'settings' ? 'campus-settings-full.png' : 'campus-profile-full.png'), fullPage: true }); } }
     assert.deepEqual(failures, []);
   });
   it('failed network writes keep form content and do not report successful publication', async () => {
