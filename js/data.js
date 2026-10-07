@@ -110,11 +110,27 @@
     return [localDate(start), localDate(end)];
   }
   const itemAreas = item => Array.isArray(item.locationGroups) ? item.locationGroups : [item.locationGroup];
+
+  // 把搜索词按空白拆成多个关键词，兼容半角与全角空格
+  function splitKeywords(value) {
+    return text(value).toLocaleLowerCase().split(/[\s\u3000]+/).filter(Boolean);
+  }
+
+  // 关键词匹配范围：物品名称 + 物品描述 + 具体地点。
+  // 作业要求「通过物品名称等关键词进行搜索」，只比对名称会漏掉
+  // 用户最常用来描述物品特征的描述与地点文字。
+  // 多个关键词之间是「与」的关系：必须全部命中，便于逐步缩小范围。
+  function matchesKeywords(item, words) {
+    if (!words.length) return true;
+    const haystack = [item.name, item.description, item.locationDetail].map(text).join('\n').toLocaleLowerCase();
+    return words.every(word => haystack.includes(word));
+  }
+
   function queryItems(items, filters = {}, favorites = [], now = new Date()) {
-    const keyword = text(filters.keyword).toLocaleLowerCase();
+    const words = splitKeywords(filters.keyword);
     const range = eventRange(filters, now);
     return items.filter(item =>
-      (!keyword || item.name.toLocaleLowerCase().includes(keyword)) &&
+      matchesKeywords(item, words) &&
       (!filters.type || filters.type === 'all' || item.type === filters.type) &&
       (!filters.category || item.category === filters.category) &&
       (!filters.locationGroup || itemAreas(item).includes(filters.locationGroup)) &&

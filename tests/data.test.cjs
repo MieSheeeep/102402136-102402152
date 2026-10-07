@@ -18,6 +18,23 @@ describe('数据校验、筛选与状态管理', () => {
     assert.equal(result.name, '黑色雨伞'); assert.equal(result.status, 'open'); assert.equal(result.ownerId, 'me'); assert.equal(result.createdAt, now); assert.ok(result.id);
   });
   it('search trims input and matches case-insensitively by name', () => assert.equal(D.queryItems([item({ name: 'AirPods 耳机' })], { keyword: ' airpods ' }, []).length, 1));
+  it('search also matches the description and the detailed place', () => {
+    const list = [item(), item({ id: 'two', name: '白色保温杯', description: '杯身贴有一只小猫贴纸', locationDetail: '图书馆三楼自习区' })];
+    assert.deepEqual(D.queryItems(list, { keyword: '贴纸' }, []).map(x => x.id), ['two']);
+    assert.deepEqual(D.queryItems(list, { keyword: '自习区' }, []).map(x => x.id), ['two']);
+    assert.deepEqual(D.queryItems(list, { keyword: '金属环' }, []).map(x => x.id), ['one']);
+  });
+  it('multiple keywords must all match, ignoring full-width spaces', () => {
+    const list = [item(), item({ id: 'two', name: '白色保温杯', description: '杯身贴有小猫贴纸' }), item({ id: 'three', name: '黑色保温杯', description: '杯身贴有小猫贴纸' })];
+    assert.deepEqual(D.queryItems(list, { keyword: '保温杯 贴纸' }, []).map(x => x.id), ['two', 'three']);
+    assert.deepEqual(D.queryItems(list, { keyword: '保温杯\u3000黑色' }, []).map(x => x.id), ['three']);
+    assert.equal(D.queryItems(list, { keyword: '保温杯 雨伞' }, []).length, 0);
+  });
+  it('a whitespace-only keyword does not filter anything', () => {
+    const list = [item(), item({ id: 'two' })];
+    assert.equal(D.queryItems(list, { keyword: '   ' }, []).length, 2);
+    assert.equal(D.queryItems(list, { keyword: '\u3000' }, []).length, 2);
+  });
   it('favorite toggle adds once then removes', () => { const a = D.toggleFavorite([], 'one'); assert.deepEqual(a, ['one']); assert.deepEqual(D.toggleFavorite(a, 'one'), []); });
   it('reopening preserves content and publication time for both types', () => {
     for (const type of ['lost', 'found']) {
