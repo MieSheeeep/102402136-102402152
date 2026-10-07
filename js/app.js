@@ -297,8 +297,6 @@
         await refreshRemote(); toast('个人资料已更新');
       } else if (form.id === 'password-form') {
         requireLogin(); await API.request('POST', '/auth/password', values); form.reset(); toast('密码已修改，其他设备已退出登录');
-      } else if (form.id === 'urgent-request-form') {
-        requireLogin(); await API.request('POST', `/urgent-requests/${encodeURIComponent(values.itemId)}`, { reward: Number(values.reward) }); closeModal(); toast('申请已提交给运营团队');
       } else {
         await API.request('PUT', `/admin/notices/${encodeURIComponent(values.itemId)}`, { reward: Number(values.reward), expiresAt: new Date(values.expiresAt).toISOString() }); await refreshRemote(); toast('公告已发布');
       }
@@ -415,7 +413,6 @@
     if (animation) animation.finished.then(finish, () => {}); else finish();
     button.focus({ preventScroll: true });
   }
-  modal.addEventListener('submit', event => { if (backend && event.target.id === 'urgent-request-form') { event.preventDefault(); void submitAccountForm(event.target); } });
   modal.addEventListener('cancel', event => { event.preventDefault(); closeModal(); });
   modal.addEventListener('close', () => {
     document.body.classList.remove('modal-open');
@@ -534,7 +531,7 @@
             filters.sort = trigger.dataset.value; if (filterDraft) filterDraft.sort = trigger.dataset.value;
           }
           document.querySelector(`[data-action="preference-sort"][data-value="${trigger.dataset.value}"]`)?.focus(); break;
-        case 'urgent-contact': openModal(V.urgentContact(state)); break;
+        case 'urgent-contact': openModal(V.urgentContact()); break;
         case 'notice-page': moveNotice(Number(trigger.dataset.value)); break;
         case 'notice-prev': moveNotice(noticeIndex() - 1); break;
         case 'notice-next': moveNotice(noticeIndex() + 1); break;
