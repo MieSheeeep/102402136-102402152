@@ -4,11 +4,27 @@
   "private": true,
   "description": "校园失物招领本地 MVP",
   "scripts": {
+    "start": "node --env-file-if-exists=.env server/start.cjs",
+    "admin": "node --env-file-if-exists=.env server/admin.cjs",
+    "backup": "node --env-file-if-exists=.env server/backup.cjs",
     "test": "mocha \"tests/**/*.test.cjs\"",
     "test:watch": "mocha \"tests/**/*.test.cjs\" --watch",
-    "check": "node --check js/data.js && node --check js/seed.js && node --check js/views.js && node --check js/app.js"
+    "test:browser": "mocha \"e2e/**/*.test.cjs\"",
+    "check": "node --check js/data.js && node --check js/seed.js && node --check js/views.js && node --check js/api.js && node --check js/app.js && node --check server/app.cjs && node --check server/start.cjs && node --check server/admin.cjs && node --check server/backup.cjs"
+  },
+  "engines": {
+    "node": ">=24.19.0 <25"
   },
   "devDependencies": {
-    "mocha": "12.0.3"
+    "mocha": "12.0.3",
+    "playwright": "1.63.0"
+  },
+  "dependencies": {
+    "@fastify/cookie": "11.1.2",
+    "@fastify/multipart": "10.1.2",
+    "@fastify/rate-limit": "11.2.0",
+    "@fastify/static": "10.1.5",
+    "fastify": "5.12.5",
+    "sharp": "0.35.5"
   }
 }

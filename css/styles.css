@@ -165,3 +165,36 @@ button,input,select,textarea{font-family:inherit}h1,h2,h3,strong{font-weight:600
 .account-list-heading>span{padding:0;font-size:12px;white-space:nowrap}
 @media(max-width:540px){.account-list-heading{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;padding:14px 0 12px}.my-list-filters{width:100%;gap:8px}.my-list-filters .type-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));flex:1;width:auto}.my-list-filters .type-tabs button{height:30px;padding:0 6px;font-size:12px;min-width:0}.completed-filter{height:36px;min-width:80px;padding:0 10px;font-size:12px}.account-list-heading>span{justify-self:end;font-size:11px}.account-list-heading>h2{grid-row:1}.account-list-heading:has(>h2){grid-template-columns:minmax(0,1fr) auto}}
 @media(max-width:540px){.account-list-heading{grid-template-columns:minmax(0,1fr) auto;gap:6px}.my-list-filters{gap:5px}.my-list-filters .type-tabs{padding:2px;gap:1px}.my-list-filters .type-tabs button{height:30px;padding:0 4px;font-size:11px}.completed-filter{height:34px;min-width:66px;padding:0 7px;font-size:11px;gap:3px}.completed-filter .icon{width:12px;height:12px}.account-list-heading>span{font-size:10px;justify-self:end}}
+:root { --profile-border: #deded6; }
+.user-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; }
+.avatar-initial { background: #e8eee8; color: #486b57; font-size: 22px; font-weight: 650; }
+.header-account .user-avatar { width: 32px; height: 32px; font-size: 15px; }
+.header-account-label { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.publisher-link { display: flex; align-items: center; gap: 12px; padding: 12px 0; color: inherit; text-decoration: none; }
+.publisher-link .user-avatar { width: 42px; height: 42px; font-size: 18px; }
+.publisher-link span small, .publisher-link span strong { display: block; }
+.publisher-link small, .profile-joined { color: #747b71; font-size: 12px; }
+.publisher-link > .icon { margin-left: auto; }
+.public-stats { grid-template-columns: repeat(3, 1fr); }
+.public-profile .profile h1 { overflow-wrap: anywhere; }
+.auth-page { max-width: 460px; margin: 42px auto; padding: 30px; background: #fff; border: 1px solid var(--profile-border); border-radius: 24px; }
+.auth-page h1 { margin: 12px 0 26px; }
+.auth-form, .security-form, .profile-editor { display: grid; gap: 18px; }
+.auth-form label, .security-form label, .profile-editor > label { display: grid; gap: 8px; font-size: 14px; font-weight: 550; }
+.auth-form input, .security-form input, .security-form select, .profile-editor input:not([type=file]) { width: 100%; min-width: 0; padding: 12px 14px; border: 1px solid var(--profile-border); border-radius: 12px; background: #fafbf8; font: inherit; }
+.auth-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 24px; font-size: 13px; }
+.auth-links a { color: #486b57; }
+.profile-editor { padding: 10px 0 18px; }
+.account-top .profile, .public-profile .profile { min-width: 0; }
+.account-top .profile h1, .public-profile .profile h1 { white-space: normal; overflow-wrap: anywhere; }
+.account-top .profile { flex-shrink: 1; }
+.profile-editor > button, .security-form > button { justify-self: start; }
+.image-editor { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 8px 0; }
+.image-editor > img:not(.user-avatar) { width: 96px; height: 76px; object-fit: cover; border-radius: 12px; }
+.image-editor input[type=file] { width: min(260px, 100%); font-size: 13px; }
+.image-editor label { display: grid; gap: 8px; }
+.settings-row strong { display: block; font-size: 13px; margin-top: 4px; }
+.security-form { padding: 10px 0 20px; }
+.recovery-code { display: block; overflow-wrap: anywhere; user-select: all; padding: 18px; margin: 20px 0; background: #f2f5ee; border-radius: 12px; font-size: 15px; line-height: 1.7; }
+.notice-empty { padding: 14px 0; color: #747b71; }
+@media (max-width: 600px) { .auth-page { margin: 22px auto; padding: 22px; } .public-profile .profile { align-items: flex-start; } .public-profile .profile h1 { font-size: 22px; } }

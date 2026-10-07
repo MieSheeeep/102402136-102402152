@@ -2,7 +2,16 @@
   'use strict';
   const D = window.CampusData;
   const V = window.CampusViews;
-  const ownerId = 'me';
+  const backend = Boolean(window.CampusAPI && /^https?:$/.test(location.protocol));
+  const API = window.CampusAPI;
+  let ownerId = backend ? null : 'me';
+  let backendReady = !backend;
+  let publicProfile = null;
+  let profileRequest = '';
+  let returnAfterLogin = 'my';
+  let pendingItemFile = null;
+  let pendingAvatarFile = null;
+  let previewUrl = '';
   const main = document.querySelector('#main');
   const modal = document.querySelector('#modal');
   const toastEl = document.querySelector('#toast');
@@ -36,7 +45,7 @@
   try { storage = window.localStorage; }
   catch (_) { storage = { getItem() { throw new Error('unavailable'); }, setItem() { throw new Error('unavailable'); } }; }
   const store = D.createStore(storage, window.CampusSeed);
-  try { state = store.load(); state = window.CampusSeed.upgrade(state); store.save(state); }
+  try { state = backend ? { remote: true, user: null, items: [], favorites: [], recentSearches: [], preferences: { sort: 'newest', saveSearchHistory: true }, notices: [] } : store.load(); if (!backend) { state = window.CampusSeed.upgrade(state); store.save(state); } }
   catch (error) { state = state || window.CampusSeed(); warningText = error.message; }
 
   filters = defaults();
@@ -61,7 +70,7 @@
     const parts = location.hash.replace(/^#/, '').split('/');
     let id = '';
     try { id = decodeURIComponent(parts[1] || ''); } catch (_) { /* malformed URL uses empty id */ }
-    return { page: ['home', 'publish', 'my', 'detail', 'edit', 'success', 'settings'].includes(parts[0]) ? parts[0] : 'home', id };
+    return { page: ['home', 'publish', 'my', 'detail', 'edit', 'success', 'settings', 'user', 'login', 'register', 'recover', 'admin'].includes(parts[0]) ? parts[0] : 'home', id };
   }
 
   function readForm() {
@@ -70,7 +79,7 @@
     const values = new FormData(form);
     const next = Object.fromEntries(values);
     next.locationGroups = next.type === 'lost' ? values.getAll('locationGroups') : [next.locationGroup];
-    return next;
+    return { ...next, image: draft.image, remote: backend };
   }
 
   function navigate(path) {
@@ -79,6 +88,7 @@
   }
 
   function render() {
+    if (!backendReady) { main.innerHTML = `<section class="empty-state"><h2>${warningText ? '暂时无法连接服务' : '正在载入'}</h2>${warningText ? '<button class="button button-primary" data-action="retry-server">重新连接</button>' : ''}</section>`; return; }
     const oldPanel = document.querySelector('#advanced-filters');
     const wasOpen = oldPanel && !oldPanel.hidden;
     const panelHeight = wasOpen ? oldPanel.getBoundingClientRect?.().height || 0 : 0;
@@ -98,9 +108,21 @@
       link.classList.toggle('active', active);
       if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
     });
-    const titles = { home: '寻物广场', publish: '发布信息', my: '我的', detail: '信息详情', edit: '编辑信息', success: '发布成功', settings: '设置' };
+    const titles = { home: '寻物广场', publish: '发布信息', my: '我的', detail: '信息详情', edit: '编辑信息', success: '发布成功', settings: '设置', user: '用户主页', login: '登录', register: '注册', recover: '找回账号', admin: '内容管理' };
     document.title = `${titles[currentRoute.page]} · 校园失物招领`;
     switch (currentRoute.page) {
+      case 'login': case 'register': case 'recover': main.innerHTML = V.auth(currentRoute.page); break;
+      case 'user':
+        if (backend) {
+          if (publicProfile?.user.id === currentRoute.id) main.innerHTML = V.userProfile(publicProfile, state.favorites);
+          else { main.innerHTML = '<section class="empty-state"><h2>正在载入用户主页</h2></section>'; void loadProfile(currentRoute.id); }
+        } else {
+          const posts = state.items.filter(post => post.ownerId === currentRoute.id);
+          const completed = posts.filter(post => post.status === 'completed').length;
+          main.innerHTML = posts.length ? V.userProfile({ user: { id: currentRoute.id, nickname: posts[0].ownerName }, items: posts, stats: { published: posts.length, open: posts.length - completed, completed } }, state.favorites) : V.detail(null, [], ownerId);
+        }
+        break;
+      case 'admin': main.innerHTML = state.user?.role === 'admin' ? V.adminPanel(state) : '<section class="empty-state"><h2>需要管理员权限</h2></section>'; break;
       case 'settings': main.innerHTML = V.settings(state); break;
       case 'my': main.innerHTML = V.my(state, myType, ownerId, myStatus); break;
       case 'detail': main.innerHTML = V.detail(item, state.favorites, ownerId); break;
@@ -109,17 +131,22 @@
           main.innerHTML = V.detail(item, state.favorites, ownerId);
           toast(item ? '只能编辑本人发布的信息' : '这条信息已不存在', 'error');
         } else {
-          if (editingId !== item.id || changed) { draft = { ...item }; errors = {}; editingId = item.id; }
+          if (editingId !== item.id || changed) { draft = { ...item, remote: backend }; pendingItemFile = null; errors = {}; editingId = item.id; }
           main.innerHTML = V.form(draft, errors, true);
         }
         break;
       case 'publish':
         if (editingId) { draft = { type: 'lost' }; editingId = null; errors = {}; }
-        main.innerHTML = V.form(draft, errors);
+        main.innerHTML = V.form({ ...draft, remote: backend }, errors);
         break;
       case 'success': main.innerHTML = item ? V.success(item) : V.detail(null, state.favorites, ownerId); break;
       default: main.innerHTML = V.home(state, filters, { advancedOpen, filterDraft, filterError });
     }
+    if (backend && !state.user && ['my', 'settings', 'publish', 'edit'].includes(currentRoute.page)) {
+      returnAfterLogin = `${currentRoute.page}${currentRoute.id ? '/' + encodeURIComponent(currentRoute.id) : ''}`;
+      main.innerHTML = V.auth('login');
+    }
+    if (pendingItemFile && document.querySelector('#item-preview')) document.querySelector('#item-preview').src = previewUrl;
     const freshPanel = document.querySelector('#advanced-filters');
     const freshQuick = document.querySelector('.compact-filters');
     if (!changed && oldQuick && freshQuick?.replaceWith) {
@@ -195,6 +222,92 @@
     } catch (error) { toast(error.message, 'error'); return false; }
   }
 
+  function syncAccount() {
+    const account = document.querySelector('.header-account');
+    if (backend && account) {
+      account.innerHTML = `${state.user ? V.avatar(state.user) : '<span>我</span>'}<span class="header-account-label">${V.esc(state.user?.nickname || '登录')}</span>`;
+      account.href = state.user ? '#my' : '#login';
+    }
+  }
+  async function refreshRemote(draw = true) {
+    state = await API.request('GET', '/state'); ownerId = state.user?.id || null; publicProfile = null;
+    syncAccount(); if (draw) render();
+  }
+  async function initializeRemote() {
+    try { await API.request('GET', '/auth/me'); await refreshRemote(false); backendReady = true; warningText = ''; filters = defaults(); render(); }
+    catch (error) { warningText = error.message; render(); toast('无法连接后端，请确认服务已启动', 'error'); }
+  }
+  async function loadProfile(id) {
+    if (profileRequest === id) return; profileRequest = id;
+    try {
+      const result = await API.request('GET', `/users/${encodeURIComponent(id)}`);
+      if (route().page === 'user' && route().id === id) { publicProfile = result; render(); }
+    } catch (error) { if (route().id === id) main.innerHTML = `<section class="empty-state"><h2>${V.esc(error.message)}</h2><a href="#home">返回广场</a></section>`; }
+    finally { if (profileRequest === id) profileRequest = ''; }
+  }
+  function requireLogin() {
+    if (state.user) return;
+    returnAfterLogin = `${currentRoute.page}${currentRoute.id ? '/' + encodeURIComponent(currentRoute.id) : ''}`;
+    navigate('login'); throw new Error('请先登录后操作');
+  }
+  async function remoteError(error) {
+    if (error.status === 401) { await refreshRemote(false); requireLogin(); }
+    if (error.status === 409) await refreshRemote();
+    toast(error.message, 'error');
+  }
+  async function remoteAction(action, trigger, item) {
+    const actions = ['preference-sort', 'settings-clear-history', 'clear-history', 'confirm-clear-favorites', 'confirm-complete', 'confirm-reopen', 'confirm-delete', 'logout', 'remove-avatar', 'remove-notice', 'confirm-admin-delete', 'dismiss-urgent'];
+    if (!actions.includes(action)) return false;
+    requireLogin(); trigger.disabled = true;
+    try {
+      let message = '已保存';
+      switch (action) {
+        case 'preference-sort': await API.request('PATCH', '/me/preferences', { sort: trigger.dataset.value }); filters.sort = trigger.dataset.value; if (filterDraft) filterDraft.sort = filters.sort; break;
+        case 'settings-clear-history': case 'clear-history': await API.request('PATCH', '/me/preferences', { recentSearches: [] }); message = '搜索记录已清空'; break;
+        case 'confirm-clear-favorites': await API.request('DELETE', '/favorites'); message = '收藏已清空'; closeModal(); break;
+        case 'confirm-complete': case 'confirm-reopen': await API.request('PATCH', `/items/${encodeURIComponent(item.id)}`, { version: item.version, status: action === 'confirm-complete' ? 'completed' : 'open' }); message = action === 'confirm-complete' ? '已标记完成' : '已恢复进行中'; closeModal(); break;
+        case 'confirm-delete': await API.request('DELETE', `/items/${encodeURIComponent(item.id)}`); message = '信息已删除'; closeModal(); break;
+        case 'logout': await API.request('POST', '/auth/logout', {}); pendingAvatarFile = pendingItemFile = null; draft = { type: 'lost' }; editingId = null; message = '已退出登录'; break;
+        case 'remove-avatar': await API.request('PATCH', '/me', { avatar: '' }); pendingAvatarFile = null; message = '头像已移除'; break;
+        case 'dismiss-urgent': await API.request('DELETE', `/admin/urgent-requests/${encodeURIComponent(trigger.dataset.id)}`); message = '申请已驳回'; break;
+        case 'remove-notice': await API.request('DELETE', `/admin/notices/${encodeURIComponent(trigger.dataset.id)}`); message = '公告已撤下'; break;
+        case 'confirm-admin-delete': await API.request('DELETE', `/admin/items/${encodeURIComponent(trigger.dataset.id)}`); closeModal(); message = '信息已删除'; break;
+      }
+      await refreshRemote(); if (action === 'logout') navigate('home'); toast(message);
+    } catch (error) { await remoteError(error); }
+    finally { if (trigger.isConnected) trigger.disabled = false; }
+    return true;
+  }
+  async function submitAccountForm(form) {
+    const button = form.querySelector('[type="submit"],button');
+    if (button.disabled) return; button.disabled = true;
+    const values = Object.fromEntries(new FormData(form));
+    try {
+      if (form.id === 'auth-form') {
+        const mode = form.dataset.mode;
+        const result = await API.request('POST', `/auth/${mode}`, values);
+        await API.request('GET', '/auth/me'); await refreshRemote(false);
+        navigate(mode === 'recover' ? 'login' : returnAfterLogin);
+        if (result.recoveryCode) openModal(V.recoveryDialog(result.recoveryCode, values.account));
+        else toast('登录成功');
+      } else if (form.id === 'profile-form') {
+        requireLogin();
+        if (pendingAvatarFile) values.avatar = await API.upload(pendingAvatarFile);
+        await API.request('PATCH', '/me', values); pendingAvatarFile = null;
+        await refreshRemote(); toast('个人资料已更新');
+      } else if (form.id === 'password-form') {
+        requireLogin(); await API.request('POST', '/auth/password', values); form.reset(); toast('密码已修改，其他设备已退出登录');
+      } else if (form.id === 'urgent-request-form') {
+        requireLogin(); await API.request('POST', `/urgent-requests/${encodeURIComponent(values.itemId)}`, { reward: Number(values.reward) }); closeModal(); toast('申请已提交给运营团队');
+      } else {
+        await API.request('PUT', `/admin/notices/${encodeURIComponent(values.itemId)}`, { reward: Number(values.reward), expiresAt: new Date(values.expiresAt).toISOString() }); await refreshRemote(); toast('公告已发布');
+      }
+    } catch (error) {
+      const feedback = form.querySelector('#auth-error');
+      if (feedback) { feedback.textContent = error.message; feedback.hidden = false; }
+      else toast(error.message, 'error');
+    } finally { if (button.isConnected) button.disabled = false; }
+  }
   function showHistory(open) {
     const panel = document.querySelector('#recent-searches');
     const input = document.querySelector('#keyword');
@@ -208,7 +321,7 @@
     filters.keyword = String(keyword || '').trim();
     if (filters.keyword && state.preferences?.saveSearchHistory !== false) {
       const next = { ...state, recentSearches: D.rememberSearch(state.recentSearches || [], filters.keyword) };
-      try { store.save(next); state = next; }
+      try { if (!backend) store.save(next); else if (state.user) void API.request('PATCH', '/me/preferences', { recentSearches: next.recentSearches }).catch(error => toast(error.message, 'error')); state = next; }
       catch (error) { toast('搜索记录未保存：' + error.message, 'error'); }
     }
     render();
@@ -302,6 +415,7 @@
     if (animation) animation.finished.then(finish, () => {}); else finish();
     button.focus({ preventScroll: true });
   }
+  modal.addEventListener('submit', event => { if (backend && event.target.id === 'urgent-request-form') { event.preventDefault(); void submitAccountForm(event.target); } });
   modal.addEventListener('cancel', event => { event.preventDefault(); closeModal(); });
   modal.addEventListener('close', () => {
     document.body.classList.remove('modal-open');
@@ -327,11 +441,12 @@
     }
   }
 
-  function toggleFavorite(item, trigger) {
+  async function toggleFavorite(item, trigger) {
     const active = !state.favorites.includes(item.id);
     const next = { ...state, favorites: D.toggleFavorite(state.favorites, item.id) };
-    store.save(next);
-    state = next;
+    if (backend) { requireLogin(); trigger.disabled = true; try { await API.request('PUT', `/favorites/${encodeURIComponent(item.id)}`, { active }); } finally { if (trigger.isConnected) trigger.disabled = false; } }
+    else store.save(next);
+    state = backend ? { ...state, favorites: active ? [...new Set([...state.favorites, item.id])] : state.favorites.filter(id => id !== item.id) } : next;
     const buttons = [...document.querySelectorAll('[data-action="favorite"]')].filter(button => button.dataset.id === item.id);
     buttons.forEach(button => {
       button.classList.toggle('is-favorite', active);
@@ -370,7 +485,7 @@
       }
     });
     const count = state.items.filter(post => state.favorites.includes(post.id)).length;
-    const overview = document.querySelector('.account-stats>div:last-child strong');
+    const overview = document.querySelector('.account-overview:not(.public-profile) .account-stats>div:last-child strong');
     const tabCount = document.querySelector('[data-action="my-type"][data-value="saved"] span');
     if (overview) overview.textContent = count;
     if (tabCount) tabCount.textContent = count;
@@ -392,7 +507,7 @@
     }
   }
 
-  document.addEventListener('click', event => {
+  document.addEventListener('click', async event => {
     if (event.target.id === 'keyword') showHistory(true);
     else if (!event.target.closest('.search-wrap')) showHistory(false);
     const trigger = event.target.closest('[data-action]');
@@ -401,7 +516,17 @@
     const id = trigger.dataset.id;
     const item = state.items.find(post => post.id === id);
     try {
+      if (backend && await remoteAction(action, trigger, item)) return;
       switch (action) {
+        case 'review-urgent': { const form = document.querySelector('#notice-form'); form.elements.itemId.value = id; form.elements.reward.value = trigger.dataset.value; form.scrollIntoView({ behavior: reducedMotion() ? 'instant' : 'smooth' }); form.elements.expiresAt.focus(); break; }
+        case 'retry-server': void initializeRemote(); break;
+        case 'login': returnAfterLogin = `detail/${encodeURIComponent(id)}`; navigate('login'); break;
+        case 'download-recovery': {
+          const url = URL.createObjectURL(new Blob([`校园失物招领账号恢复码\n账号：${trigger.dataset.account || state.user?.account || ''}\n恢复码：${trigger.dataset.value}\n`], { type: 'text/plain;charset=utf-8' }));
+          const link = document.createElement('a'); link.href = url; link.download = '校园失物招领-恢复码.txt'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); break;
+        }
+        case 'remove-image': pendingItemFile = null; draft = { ...readForm(), image: 'assets/default-item.svg' }; render(); break;
+        case 'admin-delete': openModal(V.confirmation('删除这条发布？', '该信息及其收藏记录将被移除。', 'confirm-admin-delete', id, true)); break;
         case 'dismiss-toast': clearTimeout(toastTimer); toastEl.hidden = true; break;
         case 'type': filters.type = filters.type === trigger.dataset.value ? 'all' : trigger.dataset.value; render(); document.querySelector(`[data-action="type"][data-value="${trigger.dataset.value}"]`)?.focus(); break;
         case 'preference-sort':
@@ -409,7 +534,7 @@
             filters.sort = trigger.dataset.value; if (filterDraft) filterDraft.sort = trigger.dataset.value;
           }
           document.querySelector(`[data-action="preference-sort"][data-value="${trigger.dataset.value}"]`)?.focus(); break;
-        case 'urgent-contact': openModal(V.urgentContact()); break;
+        case 'urgent-contact': openModal(V.urgentContact(state)); break;
         case 'notice-page': moveNotice(Number(trigger.dataset.value)); break;
         case 'notice-prev': moveNotice(noticeIndex() - 1); break;
         case 'notice-next': moveNotice(noticeIndex() + 1); break;
@@ -428,7 +553,7 @@
         case 'favorites-filter': filters.favoritesOnly = !filters.favoritesOnly; render(); document.querySelector('[data-action="favorites-filter"]')?.focus(); break;
         case 'favorite':
           if (!item) throw new Error('这条信息已不存在');
-          toggleFavorite(item, trigger);
+          await toggleFavorite(item, trigger);
           break;
         case 'my-type': myType = trigger.dataset.value; render(); break;
         case 'set-type':
@@ -473,7 +598,7 @@
           state = store.reset(); warningText = ''; filters = defaults(); advancedOpen = false; filterDraft = null; filterError = ''; myType = 'all'; myStatus = 'all'; draft = { type: 'lost' }; errors = {}; editingId = null;
           closeModal(); navigate('home'); toast('数据已重置'); break;
       }
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { if (backend) await remoteError(error).catch(loginError => toast(loginError.message, 'error')); else toast(error.message, 'error'); }
   });
 
   function noticeIndex() {
@@ -482,7 +607,7 @@
   }
   function moveNotice(index) {
     const track = document.querySelector('#urgent-track');
-    if (!track) return;
+    if (!track || !track.querySelector('.urgent-slide')) return;
     const count = track.children.length;
     track.scrollTo({ left: ((index + count) % count) * track.clientWidth, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   }
@@ -499,7 +624,15 @@
       event.preventDefault(); moveNotice(noticeIndex() + (event.key === 'ArrowRight' ? 1 : -1));
     }
   });
-  main.addEventListener('change', event => {
+  main.addEventListener('change', async event => {
+    if (['item-image', 'avatar-file'].includes(event.target.id)) {
+      const file = event.target.files[0]; if (!file) return;
+      if (file.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast('请选择不超过 5 MB 的 JPG、PNG 或 WebP 图片', 'error'); event.target.value = ''; return; }
+      if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl = URL.createObjectURL(file);
+      if (event.target.id === 'item-image') { pendingItemFile = file; document.querySelector('#item-preview').src = previewUrl; }
+      else { pendingAvatarFile = file; const old = document.querySelector('#profile-form .user-avatar'); const image = document.createElement('img'); image.className = 'user-avatar'; image.alt = '头像预览'; image.src = previewUrl; old.replaceWith(image); }
+      return;
+    }
     if (event.target.id === 'timePrecision') {
       const nextPrecision = event.target.value;
       draft = readForm(); draft.timePrecision = nextPrecision;
@@ -521,6 +654,7 @@
       const name = event.target.dataset.preference;
       const value = name === 'saveSearchHistory' ? event.target.checked : event.target.value;
       const preferences = { sort: 'newest', saveSearchHistory: true, ...state.preferences, [name]: value };
+      if (backend) { try { requireLogin(); await API.request('PATCH', '/me/preferences', { [name]: value }); await refreshRemote(); toast('设置已保存'); } catch (error) { toast(error.message, 'error'); } return; }
       if (persist({ ...state, preferences }, '设置已保存')) {
         if (name === 'sort') { filters.sort = value; if (filterDraft) filterDraft.sort = value; }
       }
@@ -530,8 +664,11 @@
 
   });
 
-  main.addEventListener('submit', event => {
+  main.addEventListener('submit', async event => {
     event.preventDefault();
+    if (backend && ['auth-form', 'profile-form', 'password-form', 'notice-form'].includes(event.target.id)) {
+      await submitAccountForm(event.target); return;
+    }
     if (event.target.id === 'advanced-filters') {
       filterError = D.validateFilters(filterDraft);
       if (filterError) { render(); document.querySelector('[data-pending="dateStart"]')?.focus(); return; }
@@ -554,6 +691,13 @@
     const submit = event.target.querySelector('[type="submit"]');
     submit.disabled = true;
     try {
+      if (backend) {
+        requireLogin(); if (pendingItemFile) draft.image = await API.upload(pendingItemFile);
+        const edit = currentRoute.page === 'edit';
+        const record = await API.request(edit ? 'PATCH' : 'POST', edit ? `/items/${encodeURIComponent(currentRoute.id)}` : '/items', { ...draft, ...(edit ? { version: state.items.find(post => post.id === currentRoute.id)?.version } : {}) });
+        await refreshRemote(false); myType = myStatus = 'all'; draft = { type: 'lost' }; errors = {}; editingId = null; pendingItemFile = null;
+        navigate(edit ? 'my' : `success/${encodeURIComponent(record.id)}`); if (edit) toast('修改已保存'); return;
+      }
       if (currentRoute.page === 'edit') {
         const next = { ...state, items: D.updateItem(state.items, currentRoute.id, draft, ownerId) };
         if (persist(next, '修改已保存', 'my')) { myType = 'all'; myStatus = 'all'; draft = { type: 'lost' }; editingId = null; }
@@ -562,7 +706,7 @@
         const next = { ...state, items: [record, ...state.items] };
         if (persist(next, '', `success/${encodeURIComponent(record.id)}`)) { myType = 'all'; myStatus = 'all'; draft = { type: 'lost' }; errors = {}; }
       }
-    } catch (error) { toast(error.message, 'error'); }
+    } catch (error) { if (backend) { errors = error.fields || {}; if (Object.keys(errors).length) render(); await remoteError(error).catch(() => {}); } else toast(error.message, 'error'); }
     finally { submitting = false; if (submit.isConnected) submit.disabled = false; }
   });
   main.addEventListener('focusin', event => {
@@ -583,6 +727,15 @@
       delete errors[event.target.name];
     }
   });
-  window.addEventListener('hashchange', render);
+  window.addEventListener('hashchange', async () => {
+    if (backend && backendReady && ['home', 'my', 'detail', 'user', 'success', 'admin'].includes(route().page)) {
+      main.innerHTML = '<section class="empty-state"><h2>正在载入</h2></section>';
+      try { await refreshRemote(); } catch (error) { render(); toast(error.message, 'error'); }
+    } else render();
+  });
   render();
+  if (backend) {
+    void initializeRemote();
+    window.addEventListener('focus', () => { if (backendReady && ['home', 'my', 'detail', 'user'].includes(route().page)) void refreshRemote().catch(error => toast(error.message, 'error')); });
+  }
 })();

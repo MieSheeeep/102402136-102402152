@@ -4,7 +4,7 @@
 
 ## 安装与运行
 
-建议使用 Node.js 24。Mocha 12 支持 Node.js 20.19+（20.x）或 22.12+。
+本项目需要 Node.js 24.19+（24.x），后端使用 Node 内置 SQLite。
 
 在项目根目录打开 PowerShell，执行：
 
@@ -12,9 +12,12 @@
 npm.cmd ci
 npm.cmd test
 npm.cmd run check
+
+# 另行运行真实 Chrome 网页流程（需已安装 Chrome）
+npm.cmd run test:browser
 ```
 
-`npm ci` 根据 `package-lock.json` 安装固定依赖；`npm test` 运行三个测试文件，成功时显示 `60 passing`。断言失败会显示用例名称、预期和实际值，并返回非零退出码。`check` 单独检查页面脚本语法。
+`npm ci` 根据 `package-lock.json` 安装固定依赖；`npm test` 运行五个测试文件，当前成功时显示 `77 passing`。断言失败会显示用例名称、预期和实际值，并返回非零退出码。`check` 检查页面及后端脚本语法。
 
 ```powershell
 # 开发时监视文件变化并自动重跑
@@ -34,6 +37,8 @@ npm.cmd test -- --grep "valid form has no field errors"
 | `tests/data.test.cjs` | 44 | 表单校验、查询筛选、状态管理、收藏和浏览器存储 |
 | `tests/interactions.test.cjs` | 4 | 在模拟 DOM 中执行真实控制器的筛选、设置和发布事件 |
 | `tests/security.test.cjs` | 12 | 输出转义、公告详情、旧数据补齐和页面信息展示 |
+| `tests/backend.test.cjs` | 13 | 真实 API、双账号权限、Cookie/CSRF、会话撤销、恢复码、图片归属、数据库重启与备份恢复、公告审核 |
+| `tests/profiles.test.cjs` | 4 | 资料编辑、公开主页、账号表单与图片 URL |
 
 用 `describe` 分组，用 `it` 定义一个测试。下面的例子使用现有查询函数验证搜索会忽略两端空白和英文大小写：
 
@@ -80,3 +85,8 @@ Mocha 用例覆盖业务逻辑、控制器事件和 HTML 输出。真实布局�
 - [Mocha 入门](https://mochajs.org/getting-started/)
 - [Mocha 断言说明](https://mochajs.org/features/assertions/)
 - [Node.js assert](https://nodejs.org/api/assert.html)
+
+
+## 本地完整应用的浏览器验收
+
+`e2e/fullstack.test.cjs` 使用两个隔离的 Chrome 会话及临时真实服务器／数据库，覆盖注册恢复码、带图多区域发布、收藏持久化、昵称头像同步、公开主页统计、完成及取消确认、筛选保持展开、个人设置、管理员公告及急寻申请、恢复密码、编辑和删除、窄屏布局，以及直接打开静态 HTML。它独立于 `npm test` 的 77 项测试，测试数据库不写入项目 var 目录。

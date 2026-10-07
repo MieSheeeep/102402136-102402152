@@ -8,3 +8,5 @@ coverage/
 Thumbs.db
 __pycache__/
 *.pyc
+var/
+backups/
