@@ -1,4 +1,4 @@
-// 拼接真实浏览器截图，只做裁切、等比例缩放及图外标注。
+// 拼接真实浏览器截图：保留原始像素，不放大、不重采样，输出无损PNG。
 const fs = require('node:fs');
 const path = require('node:path');
 const sharp = require('sharp');
@@ -14,32 +14,47 @@ const groups = [
   { name: '08-notices', title: '紧急寻物公告', subtitle: '三条公告依次展示，核心信息为物品、时间、地点和酬谢', short: true, shots: [['home.jpg', '① 黑色长柄雨伞', { left: 0, top: 70, width: 480, height: 190 }], ['notice-2.jpg', '② 高等数学课本', { left: 0, top: 65, width: 467, height: 185 }], ['notice-3.jpg', '③ 黑色U盘', { left: 0, top: 65, width: 467, height: 185 }]] },
 ];
 const escape = value => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
-const label = (x, y, value, size = 23, color = '#294237') => `<text x="${x}" y="${y}" fill="${color}" font-family="Microsoft YaHei, sans-serif" font-size="${size}">${escape(value)}</text>`;
+const label = (x, y, value, size = 14, color = '#294237') => `<text x="${x}" y="${y}" fill="${color}" font-family="Microsoft YaHei, sans-serif" font-size="${size}">${escape(value)}</text>`;
 (async () => {
-  const used = [];
+  const outputs = [];
   for (const group of groups) {
-    const gap = 28, margin = 28, panelW = 480;
-    const panelH = group.short ? 200 : 872;
-    const width = margin * 2 + panelW * group.shots.length + gap * (group.shots.length - 1);
-    const height = 157 + panelH + 33;
-    let labels = label(margin, 46, group.title, 32) + label(margin, 84, group.subtitle, 21, '#61766a');
-    const layers = [];
-    for (let i = 0; i < group.shots.length; i++) {
-      const [filename, caption, crop] = group.shots[i];
-      const left = margin + (panelW + gap) * i;
-      labels += label(left, 127, caption, 21);
-      let input = sharp(path.join(base, filename));
-      if (crop) {
+    const parts = [];
+    for (let offset = 0; offset < group.shots.length; offset += 2) parts.push(group.shots.slice(offset, offset + 2));
+    for (let part = 0; part < parts.length; part++) {
+      const shots = parts[part];
+      const margin = 16, gap = 16;
+      const images = [];
+      for (const [filename, caption, crop] of shots) {
         const metadata = await sharp(path.join(base, filename)).metadata();
-        input = input.extract({ ...crop, width: Math.min(crop.width, metadata.width), height: Math.min(crop.height, metadata.height - crop.top) });
+        let input = sharp(path.join(base, filename));
+        let width = metadata.width, height = metadata.height;
+        if (crop) {
+          width = Math.min(crop.width, metadata.width - crop.left);
+          height = Math.min(crop.height, metadata.height - crop.top);
+          input = input.extract({ ...crop, width, height });
+        }
+        images.push({ filename, caption, width, height, input: await input.png().toBuffer() });
       }
-      const image = await input.resize(panelW, panelH, { fit: 'contain', background: '#ffffff' }).png().toBuffer();
-      layers.push({ input: image, left, top: 157 });
-      used.push(filename);
+      const panelW = Math.max(...images.map(i => i.width));
+      const width = margin * 2 + panelW * shots.length + gap * (shots.length - 1);
+      const textLimit = Math.floor((width - margin * 2) / 13);
+      const subtitleLines = group.subtitle.match(new RegExp(`.{1,${textLimit}}`, 'gu')) || [];
+      const imageTop = 89 + subtitleLines.length * 18;
+      const height = imageTop + Math.max(...images.map(i => i.height)) + margin;
+      const title = group.title + (parts.length > 1 ? `（${part + 1}/${parts.length}）` : '');
+      let labels = label(margin, 32, title, 22);
+      subtitleLines.forEach((line, index) => { labels += label(margin, 56 + index * 18, line, 13, '#61766a'); });
+      const layers = images.map((image, i) => {
+        const left = margin + (panelW + gap) * i;
+        labels += label(left, imageTop - 13, image.caption, 14);
+        return { input: image.input, left: left + Math.floor((panelW - image.width) / 2), top: imageTop };
+      });
+      layers.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${labels}</svg>`), left: 0, top: 0 });
+      const filename = `${group.name}${parts.length > 1 ? '-' + String.fromCharCode(97 + part) : ''}.png`;
+      await sharp({ create: { width, height, channels: 3, background: '#f3f6f1' } }).composite(layers).png({ compressionLevel: 9 }).toFile(path.join(base, filename));
+      outputs.push({ filename, width, height, displayWidth: Math.min(width, 680), title, shots: images.map(({ filename, caption }) => ({ filename, caption })) });
     }
-    layers.push({ input: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${labels}</svg>`), left: 0, top: 0 });
-    await sharp({ create: { width, height, channels: 3, background: '#f3f6f1' } }).composite(layers).jpeg({ quality: 94, chromaSubsampling: '4:4:4' }).toFile(path.join(base, `${group.name}.jpg`));
   }
-  fs.writeFileSync(path.join(base, 'collages.json'), JSON.stringify(groups, null, 2) + '\n');
-  console.log(`完成 ${groups.length} 组横向拼图，${used.length} 个页面视图。`);
+  fs.writeFileSync(path.join(base, 'collages.json'), JSON.stringify({ series: groups, outputs }, null, 2) + '\n');
+  console.log(`完成 ${groups.length} 个系列、${outputs.length} 张原始像素PNG，共${groups.reduce((sum, g) => sum + g.shots.length, 0)}个页面视图。`);
 })();

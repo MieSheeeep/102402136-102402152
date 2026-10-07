@@ -1,171 +1,389 @@
-[
-  {
-    "name": "01-overview",
-    "title": "主要页面",
-    "subtitle": "首页、发布和我的",
-    "shots": [
-      [
-        "home.jpg",
-        "① 首页：公告与物品列表"
-      ],
-      [
-        "publish.jpg",
-        "② 发布：选择类型与填写信息"
-      ],
-      [
-        "my.jpg",
-        "③ 我的：统计与管理入口"
+{
+  "series": [
+    {
+      "name": "01-overview",
+      "title": "主要页面",
+      "subtitle": "首页、发布和我的",
+      "shots": [
+        [
+          "home.jpg",
+          "① 首页：公告与物品列表"
+        ],
+        [
+          "publish.jpg",
+          "② 发布：选择类型与填写信息"
+        ],
+        [
+          "my.jpg",
+          "③ 我的：统计与管理入口"
+        ]
       ]
-    ]
-  },
-  {
-    "name": "02-search",
-    "title": "名称搜索",
-    "subtitle": "有结果与无结果，两种情况都展示",
-    "shots": [
-      [
-        "search-result.jpg",
-        "① 搜索雨伞：显示匹配信息"
-      ],
-      [
-        "search-empty.jpg",
-        "② 搜索紫色滑板：无匹配提示"
+    },
+    {
+      "name": "02-search",
+      "title": "名称搜索",
+      "subtitle": "有结果与无结果，两种情况都展示",
+      "shots": [
+        [
+          "search-result.jpg",
+          "① 搜索雨伞：显示匹配信息"
+        ],
+        [
+          "search-empty.jpg",
+          "② 搜索紫色滑板：无匹配提示"
+        ]
       ]
-    ]
-  },
-  {
-    "name": "03-publish",
-    "title": "发布信息",
-    "subtitle": "分段展示长表单，按填写顺序查看",
-    "shots": [
-      [
-        "publish.jpg",
-        "① 类型、名称和分类"
-      ],
-      [
-        "publish-time.jpg",
-        "② 可能区域、地点和事件时间"
-      ],
-      [
-        "publish-full.jpg",
-        "③ 联系方式、图片和描述",
+    },
+    {
+      "name": "03-publish",
+      "title": "发布信息",
+      "subtitle": "分段展示长表单，按填写顺序查看",
+      "shots": [
+        [
+          "publish.jpg",
+          "① 类型、名称和分类"
+        ],
+        [
+          "publish-time.jpg",
+          "② 可能区域、地点和事件时间"
+        ],
+        [
+          "publish-full.jpg",
+          "③ 联系方式、图片和描述",
+          {
+            "left": 0,
+            "top": 900,
+            "width": 466,
+            "height": 847
+          }
+        ]
+      ]
+    },
+    {
+      "name": "04-status",
+      "title": "本人管理与完成状态",
+      "subtitle": "已归还用文字和配色区分，取消前再次确认",
+      "shots": [
+        [
+          "my.jpg",
+          "① 我的发布与管理入口"
+        ],
+        [
+          "completed-list.jpg",
+          "② 已完成筛选：只显示已归还"
+        ],
+        [
+          "reopen-confirm.jpg",
+          "③ 取消已归还：确认弹窗"
+        ]
+      ]
+    },
+    {
+      "name": "05-filter",
+      "title": "更多筛选",
+      "subtitle": "面板内滚动，应用后保持展开",
+      "shots": [
+        [
+          "filter-expanded.jpg",
+          "① 展开地点和物品分类"
+        ],
+        [
+          "filter-dates.jpg",
+          "② 自定义日期范围与筛选结果"
+        ]
+      ]
+    },
+    {
+      "name": "06-contact-favorite",
+      "title": "查看、联系与收藏",
+      "subtitle": "打开详情查看时间地点，复制联系方式，收藏后再查看",
+      "shots": [
+        [
+          "detail.jpg",
+          "① 详情：发布者、时间与地点"
+        ],
+        [
+          "detail-contact.jpg",
+          "② 联系发布者与复制入口"
+        ],
+        [
+          "favorite-list.jpg",
+          "③ 我的收藏：保留物品信息"
+        ]
+      ]
+    },
+    {
+      "name": "07-profile-settings",
+      "title": "个人主页与设置",
+      "subtitle": "公开资料、本人资料编辑与浏览偏好",
+      "shots": [
+        [
+          "public-profile.jpg",
+          "① 公开主页与发布统计"
+        ],
+        [
+          "settings.jpg",
+          "② 修改昵称、头像和校区"
+        ],
+        [
+          "settings-preferences.jpg",
+          "③ 浏览偏好与数据管理"
+        ]
+      ]
+    },
+    {
+      "name": "08-notices",
+      "title": "紧急寻物公告",
+      "subtitle": "三条公告依次展示，核心信息为物品、时间、地点和酬谢",
+      "short": true,
+      "shots": [
+        [
+          "home.jpg",
+          "① 黑色长柄雨伞",
+          {
+            "left": 0,
+            "top": 70,
+            "width": 480,
+            "height": 190
+          }
+        ],
+        [
+          "notice-2.jpg",
+          "② 高等数学课本",
+          {
+            "left": 0,
+            "top": 65,
+            "width": 467,
+            "height": 185
+          }
+        ],
+        [
+          "notice-3.jpg",
+          "③ 黑色U盘",
+          {
+            "left": 0,
+            "top": 65,
+            "width": 467,
+            "height": 185
+          }
+        ]
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "filename": "01-overview-a.png",
+      "width": 1012,
+      "height": 988,
+      "displayWidth": 680,
+      "title": "主要页面（1/2）",
+      "shots": [
         {
-          "left": 0,
-          "top": 900,
-          "width": 466,
-          "height": 847
+          "filename": "home.jpg",
+          "caption": "① 首页：公告与物品列表"
+        },
+        {
+          "filename": "publish.jpg",
+          "caption": "② 发布：选择类型与填写信息"
         }
       ]
-    ]
-  },
-  {
-    "name": "04-status",
-    "title": "本人管理与完成状态",
-    "subtitle": "已归还用文字和配色区分，取消前再次确认",
-    "shots": [
-      [
-        "my.jpg",
-        "① 我的发布与管理入口"
-      ],
-      [
-        "completed-list.jpg",
-        "② 已完成筛选：只显示已归还"
-      ],
-      [
-        "reopen-confirm.jpg",
-        "③ 取消已归还：确认弹窗"
-      ]
-    ]
-  },
-  {
-    "name": "05-filter",
-    "title": "更多筛选",
-    "subtitle": "面板内滚动，应用后保持展开",
-    "shots": [
-      [
-        "filter-expanded.jpg",
-        "① 展开地点和物品分类"
-      ],
-      [
-        "filter-dates.jpg",
-        "② 自定义日期范围与筛选结果"
-      ]
-    ]
-  },
-  {
-    "name": "06-contact-favorite",
-    "title": "查看、联系与收藏",
-    "subtitle": "打开详情查看时间地点，复制联系方式，收藏后再查看",
-    "shots": [
-      [
-        "detail.jpg",
-        "① 详情：发布者、时间与地点"
-      ],
-      [
-        "detail-contact.jpg",
-        "② 联系发布者与复制入口"
-      ],
-      [
-        "favorite-list.jpg",
-        "③ 我的收藏：保留物品信息"
-      ]
-    ]
-  },
-  {
-    "name": "07-profile-settings",
-    "title": "个人主页与设置",
-    "subtitle": "公开资料、本人资料编辑与浏览偏好",
-    "shots": [
-      [
-        "public-profile.jpg",
-        "① 公开主页与发布统计"
-      ],
-      [
-        "settings.jpg",
-        "② 修改昵称、头像和校区"
-      ],
-      [
-        "settings-preferences.jpg",
-        "③ 浏览偏好与数据管理"
-      ]
-    ]
-  },
-  {
-    "name": "08-notices",
-    "title": "紧急寻物公告",
-    "subtitle": "三条公告依次展示，核心信息为物品、时间、地点和酬谢",
-    "short": true,
-    "shots": [
-      [
-        "home.jpg",
-        "① 黑色长柄雨伞",
+    },
+    {
+      "filename": "01-overview-b.png",
+      "width": 514,
+      "height": 988,
+      "displayWidth": 514,
+      "title": "主要页面（2/2）",
+      "shots": [
         {
-          "left": 0,
-          "top": 70,
-          "width": 480,
-          "height": 190
-        }
-      ],
-      [
-        "notice-2.jpg",
-        "② 高等数学课本",
-        {
-          "left": 0,
-          "top": 65,
-          "width": 467,
-          "height": 185
-        }
-      ],
-      [
-        "notice-3.jpg",
-        "③ 黑色U盘",
-        {
-          "left": 0,
-          "top": 65,
-          "width": 467,
-          "height": 185
+          "filename": "my.jpg",
+          "caption": "③ 我的：统计与管理入口"
         }
       ]
-    ]
-  }
-]
+    },
+    {
+      "filename": "02-search.png",
+      "width": 982,
+      "height": 961,
+      "displayWidth": 680,
+      "title": "名称搜索",
+      "shots": [
+        {
+          "filename": "search-result.jpg",
+          "caption": "① 搜索雨伞：显示匹配信息"
+        },
+        {
+          "filename": "search-empty.jpg",
+          "caption": "② 搜索紫色滑板：无匹配提示"
+        }
+      ]
+    },
+    {
+      "filename": "03-publish-a.png",
+      "width": 1012,
+      "height": 988,
+      "displayWidth": 680,
+      "title": "发布信息（1/2）",
+      "shots": [
+        {
+          "filename": "publish.jpg",
+          "caption": "① 类型、名称和分类"
+        },
+        {
+          "filename": "publish-time.jpg",
+          "caption": "② 可能区域、地点和事件时间"
+        }
+      ]
+    },
+    {
+      "filename": "03-publish-b.png",
+      "width": 498,
+      "height": 970,
+      "displayWidth": 498,
+      "title": "发布信息（2/2）",
+      "shots": [
+        {
+          "filename": "publish-full.jpg",
+          "caption": "③ 联系方式、图片和描述"
+        }
+      ]
+    },
+    {
+      "filename": "04-status-a.png",
+      "width": 1012,
+      "height": 988,
+      "displayWidth": 680,
+      "title": "本人管理与完成状态（1/2）",
+      "shots": [
+        {
+          "filename": "my.jpg",
+          "caption": "① 我的发布与管理入口"
+        },
+        {
+          "filename": "completed-list.jpg",
+          "caption": "② 已完成筛选：只显示已归还"
+        }
+      ]
+    },
+    {
+      "filename": "04-status-b.png",
+      "width": 514,
+      "height": 988,
+      "displayWidth": 514,
+      "title": "本人管理与完成状态（2/2）",
+      "shots": [
+        {
+          "filename": "reopen-confirm.jpg",
+          "caption": "③ 取消已归还：确认弹窗"
+        }
+      ]
+    },
+    {
+      "filename": "05-filter.png",
+      "width": 982,
+      "height": 961,
+      "displayWidth": 680,
+      "title": "更多筛选",
+      "shots": [
+        {
+          "filename": "filter-expanded.jpg",
+          "caption": "① 展开地点和物品分类"
+        },
+        {
+          "filename": "filter-dates.jpg",
+          "caption": "② 自定义日期范围与筛选结果"
+        }
+      ]
+    },
+    {
+      "filename": "06-contact-favorite-a.png",
+      "width": 1012,
+      "height": 988,
+      "displayWidth": 680,
+      "title": "查看、联系与收藏（1/2）",
+      "shots": [
+        {
+          "filename": "detail.jpg",
+          "caption": "① 详情：发布者、时间与地点"
+        },
+        {
+          "filename": "detail-contact.jpg",
+          "caption": "② 联系发布者与复制入口"
+        }
+      ]
+    },
+    {
+      "filename": "06-contact-favorite-b.png",
+      "width": 499,
+      "height": 961,
+      "displayWidth": 499,
+      "title": "查看、联系与收藏（2/2）",
+      "shots": [
+        {
+          "filename": "favorite-list.jpg",
+          "caption": "③ 我的收藏：保留物品信息"
+        }
+      ]
+    },
+    {
+      "filename": "07-profile-settings-a.png",
+      "width": 982,
+      "height": 961,
+      "displayWidth": 680,
+      "title": "个人主页与设置（1/2）",
+      "shots": [
+        {
+          "filename": "public-profile.jpg",
+          "caption": "① 公开主页与发布统计"
+        },
+        {
+          "filename": "settings.jpg",
+          "caption": "② 修改昵称、头像和校区"
+        }
+      ]
+    },
+    {
+      "filename": "07-profile-settings-b.png",
+      "width": 499,
+      "height": 961,
+      "displayWidth": 499,
+      "title": "个人主页与设置（2/2）",
+      "shots": [
+        {
+          "filename": "settings-preferences.jpg",
+          "caption": "③ 浏览偏好与数据管理"
+        }
+      ]
+    },
+    {
+      "filename": "08-notices-a.png",
+      "width": 1008,
+      "height": 313,
+      "displayWidth": 680,
+      "title": "紧急寻物公告（1/2）",
+      "shots": [
+        {
+          "filename": "home.jpg",
+          "caption": "① 黑色长柄雨伞"
+        },
+        {
+          "filename": "notice-2.jpg",
+          "caption": "② 高等数学课本"
+        }
+      ]
+    },
+    {
+      "filename": "08-notices-b.png",
+      "width": 499,
+      "height": 308,
+      "displayWidth": 499,
+      "title": "紧急寻物公告（2/2）",
+      "shots": [
+        {
+          "filename": "notice-3.jpg",
+          "caption": "③ 黑色U盘"
+        }
+      ]
+    }
+  ]
+}
