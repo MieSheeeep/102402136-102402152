@@ -42,8 +42,26 @@ const data = svg(1060, 780,
   `<path d="M525,540 L525,610 L175,610 L175,540" fill="none" stroke="#678577" stroke-width="3" marker-end="url(#arrow)"/>` +
   text(350, 650, '接口返回记录，页面更新展示', 20) +
   text(530, 730, '两种数据不自动互通；演示内容仅在需要初始化时写入', 20));
+const store = (x, y, lines) => `<path d="M${x + 235},${y} H${x} V${y + 110} H${x + 235}" fill="#f0f3f7" stroke="#9facbb" stroke-width="2"/>${lines.map((line, i) => text(x + 117, y + 42 + i * 31, line, 21)).join('')}`;
+const requestRow = (y, actor, process, database, input, output, write, result) =>
+  `<rect x="28" y="${y}" width="180" height="110" fill="#f8eee3" stroke="#c9d7ce"/>${text(118, y + 62, actor[0])}` +
+  box(432, y, 298, 110, process) + store(954, y, database) +
+  arrow(208, y + 34, 432, y + 34) + text(320, y + 22, input, 19) +
+  arrow(432, y + 83, 208, y + 83) + text(320, y + 108, output, 19) +
+  arrow(730, y + 34, 954, y + 34) + text(842, y + 22, write, 19) +
+  arrow(954, y + 83, 730, y + 83) + text(842, y + 108, result, 19);
+const requests = svg(1220, 940,
+  text(610, 52, '主要请求的数据流 · 完整本地应用', 30) +
+  text(610, 94, '方框：使用者　圆角框：处理过程　开口框：数据存储', 21) +
+  requestRow(145, ['发布者'], ['P1 提交发布', '登录、表单、图片归属校验'], ['D1 物品表', '编号／发布者／内容'], '名称、时间、地点等', '新记录或字段错误', '合法发布记录', '保存后的记录') +
+  requestRow(320, ['查找的同学'], ['P2 加载与筛选', '读取接口后按条件筛选'], ['D1 物品表', '同一个物品表'], '名称、分类、区域等', '匹配列表或空结果', '请求已有物品数据', '已有物品记录') +
+  requestRow(495, ['发布者'], ['P3 更新状态', '本人权限与版本检查'], ['D1 物品表', '状态／修改时间／版本'], '编号、状态、版本', '新状态或拒绝原因', '有版本条件的更新', '更新记录或未匹配') +
+  requestRow(670, ['收藏的同学'], ['P4 保存收藏', '登录与物品存在检查'], ['D2 收藏关系表', '用户编号＋物品编号'], '物品编号、收藏状态', '保存结果', '当前用户的收藏关系', '关系保存结果') +
+  `<line x1="28" y1="827" x2="1189" y2="827" stroke="#d5dfd6"/>` +
+  text(610, 865, '当前网页从 /api/state 读取物品，在 data.js 中完成搜索与筛选；接口也提供查询入口。', 20) +
+  text(610, 902, '同名D1代表同一个物品表。收藏只保存关联编号，显示时读取物品内容。', 20));
 (async () => {
-  for (const [name, content] of [['core-flow', flow], ['data-flow', data]]) {
+  for (const [name, content] of [['core-flow', flow], ['data-flow', data], ['request-data-flow', requests]]) {
     fs.writeFileSync(path.join(__dirname, `${name}.svg`), content);
     await sharp(Buffer.from(content)).png().toFile(path.join(__dirname, `${name}.png`));
   }
