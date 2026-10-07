@@ -49,9 +49,11 @@ describe('网页真实多账号流程（Chrome）', function () {
   });
   it('changes nickname and avatar; detail and public user homepage reflect real stats', async () => {
     await go(a, 'settings'); await a.locator('[name=nickname]').fill('书包同学');
+    await a.locator('[name=campus]').selectOption('铜盘校区');
     const image = await sharp({ create: { width: 64, height: 64, channels: 3, background: '#bb7788' } }).png().toBuffer();
     await a.locator('#avatar-file').setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: image });
     await a.locator('#profile-form [type=submit]').click(); await a.waitForFunction(() => document.querySelector('.header-account-label')?.textContent === '书包同学');
+    await go(a, 'settings'); assert.equal(await a.locator('[name=campus]').inputValue(), '铜盘校区');
     await go(b, `detail/${itemId}`); assert.match(await b.locator('.publisher-link').innerText(), /书包同学/);
     await b.locator('.publisher-link').click(); await b.locator('.public-profile').waitFor();
     assert.equal(await b.locator('.public-stats strong').first().innerText(), '1'); assert.equal(await b.locator('.card-actions').count(), 0);

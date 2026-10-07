@@ -5,6 +5,7 @@
   else root.CampusData = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  const campuses = Object.freeze(['旗山校区', '铜盘校区', '怡山校区', '晋江校区', '泉港校区', '厦门集美校区', '厦门鼓浪屿校区']);
   const categories = ['校园卡 / 证件', '电子设备', '生活用品', '书籍文具', '衣物配饰', '其他'];
   const locations = ['教学楼', '食堂', '图书馆', '宿舍区', '运动场', '其他'];
   const key = 'campus-lost-found-v1';
@@ -192,5 +193,5 @@
     };
   }
 
-  return { categories, locations, key, validateItem, createItem, validateFilters, queryItems, updateItem, completeItem, reopenItem, deleteItem, statusLabel, toggleFavorite, rememberSearch, createStore };
+  return { campuses, categories, locations, key, validateItem, createItem, validateFilters, queryItems, updateItem, completeItem, reopenItem, deleteItem, statusLabel, toggleFavorite, rememberSearch, createStore };
 });

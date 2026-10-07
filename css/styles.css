@@ -181,7 +181,7 @@ button,input,select,textarea{font-family:inherit}h1,h2,h3,strong{font-weight:600
 .auth-page h1 { margin: 12px 0 26px; }
 .auth-form, .security-form, .profile-editor { display: grid; gap: 18px; }
 .auth-form label, .security-form label, .profile-editor > label { display: grid; gap: 8px; font-size: 14px; font-weight: 550; }
-.auth-form input, .security-form input, .security-form select, .profile-editor input:not([type=file]) { width: 100%; min-width: 0; padding: 12px 14px; border: 1px solid var(--profile-border); border-radius: 12px; background: #fafbf8; font: inherit; }
+.auth-form input, .security-form input, .security-form select, .profile-editor select, .profile-editor input:not([type=file]) { width: 100%; min-width: 0; padding: 12px 14px; border: 1px solid var(--profile-border); border-radius: 12px; background: #fafbf8; font: inherit; }
 .auth-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 24px; font-size: 13px; }
 .auth-links a { color: #486b57; }
 .profile-editor { padding: 10px 0 18px; }

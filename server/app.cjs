@@ -235,6 +235,7 @@ async function buildServer(options = {}) {
       if (typeof body[name] === 'string' && body[name].trim().length > max) fail(400, `${labels[name]}不能超过 ${max} 字`);
       fields[name] = body[name] === undefined ? user[name] : body[name].trim();
     }
+    if (body.campus !== undefined && fields.campus && !D.campuses.includes(fields.campus)) fail(400, '请选择福州大学校区');
     db.prepare('UPDATE users SET nickname=?,avatar=?,bio=?,campus=?,contact=? WHERE id=?').run(nickname, avatar, fields.bio, fields.campus, fields.contact, user.id);
     return ownUser(db.prepare('SELECT * FROM users WHERE id=?').get(user.id));
   });
