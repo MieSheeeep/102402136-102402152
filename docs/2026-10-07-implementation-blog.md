@@ -67,15 +67,11 @@
 
 界面采用暖棕色表示寻物、浅绿色表示招领，已完成的信息用灰蓝色区分，同时保留文字状态。底部导航在各个页面都可以使用。收藏、弹窗和按钮增加了点击反馈，减少操作后没有反应的感觉。
 
-<img src="blog-images/2026-10-07/01-overview-a.png" alt="首页与发布页" width="680">
-
-<img src="blog-images/2026-10-07/01-overview-b.png" alt="我的页面" width="514">
+<img src="blog-images/2026-10-07/01-overview.png" alt="首页、发布与我的页面" width="760">
 
 发布表单较长，下面按填写顺序分成三段：先选类型和分类，再写地点与时间，最后补联系方式、图片和描述。
 
-<img src="blog-images/2026-10-07/03-publish-a.png" alt="发布类型、分类、地点与事件时间" width="680">
-
-<img src="blog-images/2026-10-07/03-publish-b.png" alt="联系方式、图片上传和描述" width="498">
+<img src="blog-images/2026-10-07/03-publish.png" alt="发布表单的三个区域" width="760">
 
 ### 4.2 程序流程图与数据流图（10分）
 
@@ -85,13 +81,11 @@
 
 发布时检查名称、分类、地点、事件时间和联系方式。必填内容只输入空格也不能提交。描述和照片可以不填。搜索没有结果时显示空结果提示，不生成假的匹配信息。
 
-<img src="blog-images/2026-10-07/02-search.png" alt="搜索有结果和无结果的两种情况" width="680">
+<img src="blog-images/2026-10-07/02-search.png" alt="首页搜索、匹配结果与无结果提示" width="760">
 
 找回或归还后，发布者可以在“我的发布”中更新状态，操作前有确认弹窗。误点完成后还能取消，取消也需要确认。更新状态保留原来的内容和发布时间，只修改状态及修改时间。首页、详情和个人发布列表使用同一套状态规则。
 
-<img src="blog-images/2026-10-07/04-status-a.png" alt="我的发布与已完成筛选" width="680">
-
-<img src="blog-images/2026-10-07/04-status-b.png" alt="取消归还的确认弹窗" width="514">
+<img src="blog-images/2026-10-07/04-status.png" alt="我的发布、已完成筛选与取消归还确认" width="760">
 
 #### 数据流与存储
 
@@ -239,21 +233,15 @@ if (body.status !== undefined) {
 
 ### 5.4 特点展示截图（2分）
 
-每个系列从左向右查看，单图接着上一张继续展示。截图保留原始像素，拼接为PNG，正文限制展示宽度。
+每张拼图从左向右查看，同一主题横排三至四页。页面按原比例缩小并统一高度，避免单张低分辨率截图被拉大。
 
-<img src="blog-images/2026-10-07/05-filter.png" alt="展开筛选和应用自定义日期范围后的结果" width="680">
+<img src="blog-images/2026-10-07/05-filter.png" alt="展开筛选、日期范围和列表结果" width="760">
 
-<img src="blog-images/2026-10-07/06-contact-favorite-a.png" alt="物品详情与联系入口" width="680">
+<img src="blog-images/2026-10-07/06-contact-favorite.png" alt="详情、联系入口和收藏列表" width="760">
 
-<img src="blog-images/2026-10-07/06-contact-favorite-b.png" alt="我的收藏列表" width="499">
+<img src="blog-images/2026-10-07/07-profile-settings.png" alt="个人概况、公开主页、资料设置和浏览偏好" width="760">
 
-<img src="blog-images/2026-10-07/07-profile-settings-a.png" alt="公开个人主页和资料设置" width="680">
-
-<img src="blog-images/2026-10-07/07-profile-settings-b.png" alt="浏览偏好设置" width="499">
-
-<img src="blog-images/2026-10-07/08-notices-a.png" alt="雨伞和课本紧急公告" width="680">
-
-<img src="blog-images/2026-10-07/08-notices-b.png" alt="U盘紧急公告" width="499">
+<img src="blog-images/2026-10-07/08-notices.png" alt="三条紧急寻物公告" width="760">
 
 ## 六、目录说明与使用说明（5分）
 

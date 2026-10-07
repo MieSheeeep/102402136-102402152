@@ -22,15 +22,19 @@
     {
       "name": "02-search",
       "title": "名称搜索",
-      "subtitle": "有结果与无结果，两种情况都展示",
+      "subtitle": "从首页搜索，到匹配结果与无结果提示",
       "shots": [
         [
+          "home.jpg",
+          "① 首页搜索入口"
+        ],
+        [
           "search-result.jpg",
-          "① 搜索雨伞：显示匹配信息"
+          "② 搜索雨伞"
         ],
         [
           "search-empty.jpg",
-          "② 搜索紫色滑板：无匹配提示"
+          "③ 搜索无结果"
         ]
       ]
     },
@@ -81,15 +85,19 @@
     {
       "name": "05-filter",
       "title": "更多筛选",
-      "subtitle": "面板内滚动，应用后保持展开",
+      "subtitle": "展开选项、限定日期，再查看列表结果",
       "shots": [
         [
           "filter-expanded.jpg",
-          "① 展开地点和物品分类"
+          "① 地点与分类"
         ],
         [
           "filter-dates.jpg",
-          "② 自定义日期范围与筛选结果"
+          "② 自定义日期范围"
+        ],
+        [
+          "search-result.jpg",
+          "③ 结合名称查看结果"
         ]
       ]
     },
@@ -115,19 +123,23 @@
     {
       "name": "07-profile-settings",
       "title": "个人主页与设置",
-      "subtitle": "公开资料、本人资料编辑与浏览偏好",
+      "subtitle": "个人概况、公开主页、资料编辑和浏览偏好",
       "shots": [
         [
+          "my.jpg",
+          "① 个人概况"
+        ],
+        [
           "public-profile.jpg",
-          "① 公开主页与发布统计"
+          "② 公开主页"
         ],
         [
           "settings.jpg",
-          "② 修改昵称、头像和校区"
+          "③ 资料编辑"
         ],
         [
           "settings-preferences.jpg",
-          "③ 浏览偏好与数据管理"
+          "④ 浏览偏好"
         ]
       ]
     },
@@ -172,11 +184,11 @@
   ],
   "outputs": [
     {
-      "filename": "01-overview-a.png",
-      "width": 1012,
-      "height": 988,
-      "displayWidth": 680,
-      "title": "主要页面（1/2）",
+      "filename": "01-overview.png",
+      "width": 1066,
+      "height": 713,
+      "displayWidth": 760,
+      "title": "主要页面",
       "shots": [
         {
           "filename": "home.jpg",
@@ -185,16 +197,7 @@
         {
           "filename": "publish.jpg",
           "caption": "② 发布：选择类型与填写信息"
-        }
-      ]
-    },
-    {
-      "filename": "01-overview-b.png",
-      "width": 514,
-      "height": 988,
-      "displayWidth": 514,
-      "title": "主要页面（2/2）",
-      "shots": [
+        },
         {
           "filename": "my.jpg",
           "caption": "③ 我的：统计与管理入口"
@@ -203,27 +206,31 @@
     },
     {
       "filename": "02-search.png",
-      "width": 982,
-      "height": 961,
-      "displayWidth": 680,
+      "width": 1066,
+      "height": 713,
+      "displayWidth": 760,
       "title": "名称搜索",
       "shots": [
         {
+          "filename": "home.jpg",
+          "caption": "① 首页搜索入口"
+        },
+        {
           "filename": "search-result.jpg",
-          "caption": "① 搜索雨伞：显示匹配信息"
+          "caption": "② 搜索雨伞"
         },
         {
           "filename": "search-empty.jpg",
-          "caption": "② 搜索紫色滑板：无匹配提示"
+          "caption": "③ 搜索无结果"
         }
       ]
     },
     {
-      "filename": "03-publish-a.png",
-      "width": 1012,
-      "height": 988,
-      "displayWidth": 680,
-      "title": "发布信息（1/2）",
+      "filename": "03-publish.png",
+      "width": 1066,
+      "height": 713,
+      "displayWidth": 760,
+      "title": "发布信息",
       "shots": [
         {
           "filename": "publish.jpg",
@@ -232,16 +239,7 @@
         {
           "filename": "publish-time.jpg",
           "caption": "② 可能区域、地点和事件时间"
-        }
-      ]
-    },
-    {
-      "filename": "03-publish-b.png",
-      "width": 498,
-      "height": 970,
-      "displayWidth": 498,
-      "title": "发布信息（2/2）",
-      "shots": [
+        },
         {
           "filename": "publish-full.jpg",
           "caption": "③ 联系方式、图片和描述"
@@ -249,11 +247,11 @@
       ]
     },
     {
-      "filename": "04-status-a.png",
-      "width": 1012,
-      "height": 988,
-      "displayWidth": 680,
-      "title": "本人管理与完成状态（1/2）",
+      "filename": "04-status.png",
+      "width": 1066,
+      "height": 713,
+      "displayWidth": 760,
+      "title": "本人管理与完成状态",
       "shots": [
         {
           "filename": "my.jpg",
@@ -262,16 +260,7 @@
         {
           "filename": "completed-list.jpg",
           "caption": "② 已完成筛选：只显示已归还"
-        }
-      ]
-    },
-    {
-      "filename": "04-status-b.png",
-      "width": 514,
-      "height": 988,
-      "displayWidth": 514,
-      "title": "本人管理与完成状态（2/2）",
-      "shots": [
+        },
         {
           "filename": "reopen-confirm.jpg",
           "caption": "③ 取消已归还：确认弹窗"
@@ -280,27 +269,31 @@
     },
     {
       "filename": "05-filter.png",
-      "width": 982,
-      "height": 961,
-      "displayWidth": 680,
+      "width": 1066,
+      "height": 713,
+      "displayWidth": 760,
       "title": "更多筛选",
       "shots": [
         {
           "filename": "filter-expanded.jpg",
-          "caption": "① 展开地点和物品分类"
+          "caption": "① 地点与分类"
         },
         {
           "filename": "filter-dates.jpg",
-          "caption": "② 自定义日期范围与筛选结果"
+          "caption": "② 自定义日期范围"
+        },
+        {
+          "filename": "search-result.jpg",
+          "caption": "③ 结合名称查看结果"
         }
       ]
     },
     {
-      "filename": "06-contact-favorite-a.png",
-      "width": 1012,
-      "height": 988,
-      "displayWidth": 680,
-      "title": "查看、联系与收藏（1/2）",
+      "filename": "06-contact-favorite.png",
+      "width": 1066,
+      "height": 713,
+      "displayWidth": 760,
+      "title": "查看、联系与收藏",
       "shots": [
         {
           "filename": "detail.jpg",
@@ -309,16 +302,7 @@
         {
           "filename": "detail-contact.jpg",
           "caption": "② 联系发布者与复制入口"
-        }
-      ]
-    },
-    {
-      "filename": "06-contact-favorite-b.png",
-      "width": 499,
-      "height": 961,
-      "displayWidth": 499,
-      "title": "查看、联系与收藏（2/2）",
-      "shots": [
+        },
         {
           "filename": "favorite-list.jpg",
           "caption": "③ 我的收藏：保留物品信息"
@@ -326,41 +310,36 @@
       ]
     },
     {
-      "filename": "07-profile-settings-a.png",
-      "width": 982,
-      "height": 961,
-      "displayWidth": 680,
-      "title": "个人主页与设置（1/2）",
+      "filename": "07-profile-settings.png",
+      "width": 1416,
+      "height": 713,
+      "displayWidth": 760,
+      "title": "个人主页与设置",
       "shots": [
         {
+          "filename": "my.jpg",
+          "caption": "① 个人概况"
+        },
+        {
           "filename": "public-profile.jpg",
-          "caption": "① 公开主页与发布统计"
+          "caption": "② 公开主页"
         },
         {
           "filename": "settings.jpg",
-          "caption": "② 修改昵称、头像和校区"
-        }
-      ]
-    },
-    {
-      "filename": "07-profile-settings-b.png",
-      "width": 499,
-      "height": 961,
-      "displayWidth": 499,
-      "title": "个人主页与设置（2/2）",
-      "shots": [
+          "caption": "③ 资料编辑"
+        },
         {
           "filename": "settings-preferences.jpg",
-          "caption": "③ 浏览偏好与数据管理"
+          "caption": "④ 浏览偏好"
         }
       ]
     },
     {
-      "filename": "08-notices-a.png",
-      "width": 1008,
-      "height": 313,
-      "displayWidth": 680,
-      "title": "紧急寻物公告（1/2）",
+      "filename": "08-notices.png",
+      "width": 1276,
+      "height": 273,
+      "displayWidth": 760,
+      "title": "紧急寻物公告",
       "shots": [
         {
           "filename": "home.jpg",
@@ -369,16 +348,7 @@
         {
           "filename": "notice-2.jpg",
           "caption": "② 高等数学课本"
-        }
-      ]
-    },
-    {
-      "filename": "08-notices-b.png",
-      "width": 499,
-      "height": 308,
-      "displayWidth": 499,
-      "title": "紧急寻物公告（2/2）",
-      "shots": [
+        },
         {
           "filename": "notice-3.jpg",
           "caption": "③ 黑色U盘"
