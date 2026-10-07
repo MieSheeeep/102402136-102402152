@@ -26,6 +26,7 @@
 - 浏览器会话通过 HttpOnly、SameSite=Lax Cookie 保存，服务端保存会话令牌摘要，有效期七天；Cookie 写接口必须携带会话 CSRF 校验值。注销立即废止当前会话，修改密码撤销其他会话。
 - 公开用户主页只有昵称、头像、加入时间、公开发布列表及发布／进行中／已完成数量，不包含账号、恢复码和收藏。联系方式登录后可见。
 - 发布者由会话确定；修改资料后历史帖子关联最新昵称头像；普通用户不能修改其他人的帖子，图片也只能引用自己上传的文件。
+- 设置支持个人简介（160 字）、所在校区（30 字）与常用联系方式（120 字）。简介和校区公开，常用联系方式只返回给本人，并作为新发布的可修改默认值。演示头像生成后保存在 uploads，按上传文件记录用户归属；`demo-profiles-v1` 标记保证资料补齐只执行一次，不覆盖已经填写的资料。
 - 更新帖子需要 `version`，旧版本返回 409，避免旧页面覆盖已保存的修改。
 
 ## API 概览
@@ -49,7 +50,7 @@
 | `DELETE /items/:id` | 删除自己的发布；数据库级联删除相关收藏和公告 |
 | `PUT /favorites/:id` | `{ "active": true/false }`，幂等收藏操作 |
 | `DELETE /favorites` | 清空本人收藏 |
-| `PATCH /me` | nickname、avatar（上传 URL；空串移除头像） |
+| `PATCH /me` | nickname、avatar（上传 URL；空串移除头像）、bio、campus、contact |
 | `PATCH /me/preferences` | sort、saveSearchHistory、recentSearches |
 | `GET /users/:id` | 公开 user、stats、items |
 | `POST /uploads` | multipart/form-data，一个 file；返回 `{ "url": "/uploads/….webp" }` |

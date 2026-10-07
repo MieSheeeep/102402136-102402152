@@ -23,4 +23,11 @@ describe('账号和用户主页视图', () => {
     assert.equal(V.imageUrl('https://untrusted.example/a.png'), 'assets/default-item.svg');
     assert.equal(V.imageUrl(user.avatar), user.avatar);
   });
+  it('profile fields are editable, escaped and public contact stays private', () => {
+    const filled = { ...user, bio: '<script>简介</script>', campus: '旗山校区', contact: 'private-wechat' };
+    const settings = V.profileSettings(filled); assert.ok(settings.includes('name="bio"') && settings.includes('name="campus"') && settings.includes('name="contact"'));
+    const html = V.userProfile({ user: filled, stats: { published: 0, open: 0, completed: 0 }, items: [] }, []);
+    assert.ok(html.includes('旗山校区') && html.includes('&lt;script&gt;简介&lt;/script&gt;'));
+    assert.ok(!html.includes('private-wechat'));
+  });
 });

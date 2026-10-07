@@ -133,6 +133,10 @@ describe('网页真实多账号流程（Chrome）', function () {
       assert.equal(await page.locator('.account-stats strong').first().innerText(), '3');
       assert.equal(await page.locator('.account-stats strong').nth(3).innerText(), '2');
       assert.equal(await page.locator('.item-card').count(), 3); assert.equal(await page.locator('[data-action=edit]').count(), 3);
+      await page.goto(`${demoUrl}/#settings`); await page.locator('#profile-form').waitFor();
+      assert.equal(await page.locator('[name=campus]').inputValue(), '旗山校区'); assert.equal(await page.locator('#profile-form [name=contact]').inputValue(), '微信：campus_demo');
+      assert.ok(await page.locator('[name=bio]').inputValue()); assert.match(await page.locator('#profile-form img').getAttribute('src'), /uploads/);
+      await page.goto(`${demoUrl}/#publish`); await page.locator('#publish-form').waitFor(); assert.equal(await page.locator('[name=contact]').inputValue(), '微信：campus_demo');
     } finally { await page?.close(); await demoApp?.close(); rmSync(demoDir, { recursive: true, force: true }); }
   });
 });

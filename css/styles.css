@@ -185,6 +185,10 @@ button,input,select,textarea{font-family:inherit}h1,h2,h3,strong{font-weight:600
 .auth-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 24px; font-size: 13px; }
 .auth-links a { color: #486b57; }
 .profile-editor { padding: 10px 0 18px; }
+.profile-editor textarea { width: 100%; min-width: 0; padding: 12px 14px; border: 1px solid var(--profile-border); border-radius: 12px; background: #fafbf8; font: inherit; resize: vertical; }
+.profile-campus { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--muted); margin-top: 5px; }
+.profile-campus .icon { width: 14px; height: 14px; }
+.profile-bio { font-size: 13px; color: var(--muted); line-height: 1.7; margin: 8px 0; overflow-wrap: anywhere; max-width: 560px; }
 .account-top .profile, .public-profile .profile { min-width: 0; }
 .account-top .profile h1, .public-profile .profile h1 { white-space: normal; overflow-wrap: anywhere; }
 .account-top .profile { flex-shrink: 1; }

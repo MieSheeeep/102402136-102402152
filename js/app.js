@@ -137,7 +137,7 @@
         break;
       case 'publish':
         if (editingId) { draft = { type: 'lost' }; editingId = null; errors = {}; }
-        main.innerHTML = V.form({ ...draft, remote: backend }, errors);
+        main.innerHTML = V.form({ ...draft, contact: draft.contact || state.user?.contact || '', remote: backend }, errors);
         break;
       case 'success': main.innerHTML = item ? V.success(item) : V.detail(null, state.favorites, ownerId); break;
       default: main.innerHTML = V.home(state, filters, { advancedOpen, filterDraft, filterError });

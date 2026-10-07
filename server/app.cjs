@@ -12,7 +12,8 @@ const derive = promisify(scrypt);
 const digest = value => createHash('sha256').update(value).digest('hex');
 const secret = () => randomBytes(32).toString('hex');
 const fail = (statusCode, message, fields) => { const error = new Error(message); error.statusCode = statusCode; error.fields = fields; throw error; };
-const publicUser = row => ({ id: row.id, nickname: row.nickname, avatar: row.avatar, createdAt: row.created_at });
+const publicUser = row => ({ id: row.id, nickname: row.nickname, avatar: row.avatar, bio: row.bio || '', campus: row.campus || '', createdAt: row.created_at });
+const ownUser = row => ({ ...publicUser(row), account: row.account, role: row.role, contact: row.contact || '' });
 const passwordValid = value => typeof value === 'string' && value.length >= 10 && value.length <= 128;
 async function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
@@ -49,6 +50,8 @@ async function buildServer(options = {}) {
       reward INTEGER NOT NULL, created_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     PRAGMA user_version=1;`);
+  const userColumns = new Set(db.prepare('PRAGMA table_info(users)').all().map(column => column.name));
+  for (const column of ['bio', 'campus', 'contact']) if (!userColumns.has(column)) db.exec(`ALTER TABLE users ADD COLUMN ${column} TEXT NOT NULL DEFAULT ''`);
   const app = Fastify({ logger: options.logger || false, bodyLimit: 32 * 1024, trustProxy: false });
   await app.register(require('@fastify/cookie'));
   await app.register(require('@fastify/rate-limit'), { global: true, max: 240, timeWindow: '1 minute' });
@@ -56,7 +59,7 @@ async function buildServer(options = {}) {
   app.decorate('db', db);
   app.addHook('onClose', async () => db.close());
   if (options.demoData) {
-    try { app.decorate('demoAccounts', await require('./demo.cjs').seedDemo(db, hashPassword)); }
+    try { app.decorate('demoAccounts', await require('./demo.cjs').seedDemo(db, hashPassword, dataDir)); }
     catch (error) { await app.close(); throw error; }
   }
   const root = resolve(__dirname, '..');
@@ -116,7 +119,7 @@ async function buildServer(options = {}) {
     const token = secret(); const csrf = secret(); const expires = Date.now() + 7 * 86400000;
     db.prepare('DELETE FROM sessions WHERE expires_at<=?').run(Date.now());
     db.prepare('INSERT INTO sessions VALUES (?,?,?,?)').run(digest(token), user.id, csrf, expires);
-    const result = { user: { ...publicUser(user), account: user.account, role: user.role }, csrf };
+    const result = { user: ownUser(user), csrf };
     if (req.body?.transport === 'bearer') result.token = token;
     else reply.setCookie('campus_session', token, { httpOnly: true, sameSite: 'lax', secure: process.env.COOKIE_SECURE === 'true', path: '/', maxAge: 7 * 86400 });
     return result;
@@ -143,7 +146,7 @@ async function buildServer(options = {}) {
     if (!user || !valid) fail(401, '账号或密码不正确');
     return issueSession(user, req, reply);
   });
-  app.get('/api/auth/me', async req => ({ user: req.user ? { ...publicUser(req.user), account: req.user.account, role: req.user.role } : null, csrf: req.session?.csrf || '' }));
+  app.get('/api/auth/me', async req => ({ user: req.user ? ownUser(req.user) : null, csrf: req.session?.csrf || '' }));
   app.post('/api/auth/logout', async (req, reply) => {
     auth(req); db.prepare('DELETE FROM sessions WHERE token_hash=?').run(req.session.token_hash);
     reply.clearCookie('campus_session', { path: '/' }); return { ok: true };
@@ -180,7 +183,7 @@ async function buildServer(options = {}) {
   });
   app.get('/api/state', async req => {
     const prefs = preferences(req.user);
-    return { version: 1, remote: true, user: req.user ? { ...publicUser(req.user), account: req.user.account, role: req.user.role } : null,
+    return { version: 1, remote: true, user: req.user ? ownUser(req.user) : null,
       items: listItems(req.user), favorites: req.user ? db.prepare('SELECT item_id FROM favorites WHERE user_id=?').all(req.user.id).map(row => row.item_id) : [],
       preferences: { sort: prefs.sort, saveSearchHistory: prefs.saveSearchHistory }, recentSearches: prefs.recentSearches,
       notices: db.prepare('SELECT * FROM notices WHERE expires_at>?').all(new Date().toISOString()).flatMap(row => { const item = getItem(row.item_id, req.user); return item.status === 'open' ? [{ ...item, reward: row.reward }] : []; }),
@@ -225,8 +228,15 @@ async function buildServer(options = {}) {
     const user = auth(req); const body = req.body || {};
     const nickname = body.nickname === undefined ? user.nickname : validateNickname(body.nickname);
     const avatar = body.avatar === undefined ? user.avatar : body.avatar === '' ? '' : ownedImage(body.avatar, user);
-    db.prepare('UPDATE users SET nickname=?,avatar=? WHERE id=?').run(nickname, avatar, user.id);
-    return { ...publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(user.id)), account: user.account, role: user.role };
+    const fields = {};
+    const labels = { bio: '个人简介', campus: '所在校区', contact: '常用联系方式' };
+    for (const [name, max] of [['bio', 160], ['campus', 30], ['contact', 120]]) {
+      if (body[name] !== undefined && typeof body[name] !== 'string') fail(400, `请填写文字格式的${labels[name]}`);
+      if (typeof body[name] === 'string' && body[name].trim().length > max) fail(400, `${labels[name]}不能超过 ${max} 字`);
+      fields[name] = body[name] === undefined ? user[name] : body[name].trim();
+    }
+    db.prepare('UPDATE users SET nickname=?,avatar=?,bio=?,campus=?,contact=? WHERE id=?').run(nickname, avatar, fields.bio, fields.campus, fields.contact, user.id);
+    return ownUser(db.prepare('SELECT * FROM users WHERE id=?').get(user.id));
   });
   app.patch('/api/me/preferences', async req => {
     const user = auth(req); const body = req.body || {}; const prefs = preferences(user);

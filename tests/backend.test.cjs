@@ -147,4 +147,12 @@ describe('真实后端、多用户与持久化', function () {
     assert.equal(response.statusCode, 429);
     assert.equal((await call('POST', '/api/items', { ...post(), description: 'a'.repeat(40000) }, a)).statusCode, 413);
   });
+  it('saves personal contact privately, exposes biography and campus and validates profile lengths', async () => {
+    const response = await call('PATCH', '/api/me', { bio: '喜欢校园互助', campus: '旗山校区', contact: '微信private' }, a);
+    assert.equal(response.statusCode, 200); assert.equal(response.json().contact, '微信private');
+    const profile = (await call('GET', `/api/users/${a.user.id}`, null, b)).json();
+    assert.equal(profile.user.bio, '喜欢校园互助'); assert.equal(profile.user.campus, '旗山校区'); assert.equal(profile.user.contact, undefined);
+    assert.equal((await call('PATCH', '/api/me', { bio: '字'.repeat(161) }, a)).statusCode, 400);
+    assert.equal((await call('PATCH', '/api/me', { campus: {} }, a)).statusCode, 400);
+  });
 });
