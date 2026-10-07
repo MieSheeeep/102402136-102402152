@@ -34,6 +34,25 @@ describe('网页真实多账号流程（Chrome）', function () {
     await a.locator('.account-overview h1').waitFor(); assert.match(await a.locator('.account-overview').innerText(), /web_student_a/);
     userId = (await (await a.request.get(`${url}/api/auth/me`)).json()).user.id;
   });
+  it('gives dynamic controls feedback and clears canceled presses without activating them', async () => {
+    await go(a, 'home');
+    const filter = a.locator('[data-action=advanced-filters]');
+    await filter.dispatchEvent('pointerdown', { isPrimary: true, button: 0 });
+    await a.waitForFunction(() => getComputedStyle(document.querySelector('[data-action=advanced-filters]')).scale === '0.97');
+    await filter.dispatchEvent('pointercancel');
+    await a.waitForFunction(() => !document.querySelector('.tap-pressed'));
+    assert.equal(await filter.getAttribute('aria-expanded'), 'false');
+    await filter.click();
+    assert.equal(await filter.getAttribute('aria-expanded'), 'true');
+    await a.emulateMedia({ reducedMotion: 'reduce' });
+    const apply = a.locator('#advanced-filters button[type=submit]');
+    await apply.dispatchEvent('pointerdown', { isPrimary: true, button: 0 });
+    assert.equal(await apply.evaluate(node => getComputedStyle(node).scale), 'none');
+    await apply.dispatchEvent('pointercancel');
+    await a.emulateMedia({ reducedMotion: 'no-preference' });
+    await go(a, 'my');
+    await a.waitForFunction(() => !document.querySelector('.tap-pressed, .tap-release'));
+  });
   it('publishes real image and multiple locations; another account can view and save it', async () => {
     await go(a, 'publish'); await a.locator('[name=name]').fill('端到端蓝色书包'); await a.locator('[name=category]').selectOption('生活用品');
     await a.locator('.publish-area-chip:has(input[value="教学楼"])').click(); await a.locator('.publish-area-chip:has(input[value="食堂"])').click();

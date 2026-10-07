@@ -10,7 +10,7 @@
     "test": "mocha \"tests/**/*.test.cjs\"",
     "test:watch": "mocha \"tests/**/*.test.cjs\" --watch",
     "test:browser": "mocha \"e2e/**/*.test.cjs\"",
-    "check": "node --check js/data.js && node --check js/seed.js && node --check js/views.js && node --check js/api.js && node --check js/app.js && node --check server/app.cjs && node --check server/demo.cjs && node --check server/start.cjs && node --check server/admin.cjs && node --check server/backup.cjs"
+    "check": "node --check js/data.js && node --check js/seed.js && node --check js/views.js && node --check js/api.js && node --check js/app.js && node --check js/feedback.js && node --check server/app.cjs && node --check server/demo.cjs && node --check server/start.cjs && node --check server/admin.cjs && node --check server/backup.cjs"
   },
   "engines": {
     "node": ">=24.19.0 <25"
