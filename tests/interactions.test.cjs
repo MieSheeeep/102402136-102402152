@@ -1,4 +1,4 @@
-const test = require('node:test');
+const { describe, it } = require('mocha');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
@@ -36,39 +36,41 @@ function controller() {
     apply() { events['main:submit']({ preventDefault() {}, target: { id: 'advanced-filters' } }); }
   };
 }
-test('multi-select stays a draft until apply and closing discards unapplied changes', () => {
-  const c = controller(); c.click('advanced-filters'); c.multi('locations', ['教学楼', '食堂']);
-  c.click('time-range', '3days');
-  assert.deepEqual(c.seen.at(-1).filters.locations, []);
-  c.click('advanced-filters'); c.click('advanced-filters');
-  assert.deepEqual(c.seen.at(-1).ui.filterDraft.locations, []);
-  c.multi('locations', ['教学楼', '食堂']); c.multi('categories', ['生活用品']); c.apply();
-  assert.deepEqual(c.seen.at(-1).filters.locations, ['教学楼', '食堂']);
-  assert.equal(c.seen.at(-1).ui.advancedOpen, true);
-  c.click('reset-pending');
-  assert.deepEqual(c.seen.at(-1).filters.locations, ['教学楼', '食堂']);
-  c.apply(); assert.deepEqual(c.seen.at(-1).filters.locations, []);
-});
-test('reversed custom range remains open and does not alter applied filters', () => {
-  const c = controller(); c.click('advanced-filters'); c.click('time-range', 'custom');
-  c.pending('dateStart', '2026-10-07'); c.pending('dateEnd', '2026-10-06'); c.apply();
-  assert.equal(c.seen.at(-1).filters.timeRange, 'all');
-  assert.equal(c.seen.at(-1).ui.advancedOpen, true); assert.ok(c.seen.at(-1).ui.filterError);
-  c.pending('dateStart', '2026-10-01'); c.apply();
-  assert.equal(c.seen.at(-1).filters.timeRange, 'custom');
-  assert.equal(c.seen.at(-1).filters.dateEnd, '2026-10-06');
-});
+describe('筛选与发布交互', () => {
+  it('multi-select stays a draft until apply and closing discards unapplied changes', () => {
+    const c = controller(); c.click('advanced-filters'); c.multi('locations', ['教学楼', '食堂']);
+    c.click('time-range', '3days');
+    assert.deepEqual(c.seen.at(-1).filters.locations, []);
+    c.click('advanced-filters'); c.click('advanced-filters');
+    assert.deepEqual(c.seen.at(-1).ui.filterDraft.locations, []);
+    c.multi('locations', ['教学楼', '食堂']); c.multi('categories', ['生活用品']); c.apply();
+    assert.deepEqual(c.seen.at(-1).filters.locations, ['教学楼', '食堂']);
+    assert.equal(c.seen.at(-1).ui.advancedOpen, true);
+    c.click('reset-pending');
+    assert.deepEqual(c.seen.at(-1).filters.locations, ['教学楼', '食堂']);
+    c.apply(); assert.deepEqual(c.seen.at(-1).filters.locations, []);
+  });
+  it('reversed custom range remains open and does not alter applied filters', () => {
+    const c = controller(); c.click('advanced-filters'); c.click('time-range', 'custom');
+    c.pending('dateStart', '2026-10-07'); c.pending('dateEnd', '2026-10-06'); c.apply();
+    assert.equal(c.seen.at(-1).filters.timeRange, 'all');
+    assert.equal(c.seen.at(-1).ui.advancedOpen, true); assert.ok(c.seen.at(-1).ui.filterError);
+    c.pending('dateStart', '2026-10-01'); c.apply();
+    assert.equal(c.seen.at(-1).filters.timeRange, 'custom');
+    assert.equal(c.seen.at(-1).filters.dateEnd, '2026-10-06');
+  });
 
 
-test('changing default sort synchronizes an already open filter draft', () => {
-  const c = controller(); c.click('advanced-filters'); c.click('preference-sort', 'oldest'); c.apply();
-  assert.equal(c.seen.at(-1).filters.sort, 'oldest');
-});
-test('successful publication returns to my posts without stale completion or type filters', () => {
-  const c = controller(); c.navigate('#my'); c.click('my-type', 'found'); c.click('my-status');
-  c.navigate('#publish');
-  c.publish([['type','lost'],['name','新发布验收'],['category','生活用品'],['locationGroups','教学楼'],['locationDetail','教学楼302'],['occurredAt','2026-10-06T10:00'],['timePrecision','datetime'],['contact','示例微信']]);
-  c.navigate('#my');
-  assert.equal(c.mySeen.at(-1).type, 'all'); assert.equal(c.mySeen.at(-1).status, 'all');
-  assert.ok(c.main.innerHTML.includes('新发布验收'));
+  it('changing default sort synchronizes an already open filter draft', () => {
+    const c = controller(); c.click('advanced-filters'); c.click('preference-sort', 'oldest'); c.apply();
+    assert.equal(c.seen.at(-1).filters.sort, 'oldest');
+  });
+  it('successful publication returns to my posts without stale completion or type filters', () => {
+    const c = controller(); c.navigate('#my'); c.click('my-type', 'found'); c.click('my-status');
+    c.navigate('#publish');
+    c.publish([['type','lost'],['name','新发布验收'],['category','生活用品'],['locationGroups','教学楼'],['locationDetail','教学楼302'],['occurredAt','2026-10-06T10:00'],['timePrecision','datetime'],['contact','示例微信']]);
+    c.navigate('#my');
+    assert.equal(c.mySeen.at(-1).type, 'all'); assert.equal(c.mySeen.at(-1).status, 'all');
+    assert.ok(c.main.innerHTML.includes('新发布验收'));
+  });
 });

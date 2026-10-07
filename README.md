@@ -55,7 +55,8 @@ js/app.js                    页面导航、表单和交互控制
 tests/data.test.cjs          自动化业务测试
 tests/security.test.cjs      用户文本、显示语义与示例数据检查
 tests/interactions.test.cjs  筛选草稿、应用与日期错误的控制器交互检查
-package.json                可选的开发检查命令，无依赖
+package.json                Mocha 测试依赖与开发检查命令
+package-lock.json           固定开发依赖版本
 docs/                       来源、需求、实现计划和验证记录
 ```
 
@@ -63,14 +64,17 @@ docs/                       来源、需求、实现计划和验证记录
 
 ## 开发检查
 
-自动测试使用 Node 内置的 `node:test` 和 `assert`，不依赖第三方测试框架。安装 Node.js 后在项目目录执行：
+自动测试使用 Mocha 和 Node 内置的 `node:assert/strict`。开发检查需要 Node.js 20.19+（20.x）或 22.12+；建议使用 Node.js 24。在项目目录安装开发依赖后执行：
 
 ```powershell
+npm.cmd ci
 npm.cmd test
 npm.cmd run check
 ```
 
-也可以直接执行 `node --test tests/*.test.cjs`。
+测试按数据逻辑、控制器交互、视图安全与展示三个组输出，现有 60 项用例保留。开发时可执行 `npm.cmd run test:watch` 自动重跑；也可以执行 `npm.cmd test -- --grep "favorite"` 只运行名称含 `favorite` 的用例。
+
+Mocha 仅用于开发测试，直接打开 `index.html` 不需要 Node.js 或安装依赖。测试方法及用例设计见 [测试说明](docs/testing.md)。
 
 测试覆盖校验失败、关键词与组合筛选、排序、收藏、编辑归属、状态文案、删除、持久化、损坏数据与存储失败。自动化测试代替不了浏览器中的布局、剪贴板和完整页面走查。
 

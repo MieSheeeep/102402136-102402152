@@ -4,6 +4,7 @@
 - [博客原文提取](references/blog-extract.md)：保留正文和原型／流程图图片，便于对照。
 - [博客配图目录](references/blog-images/)：五张原始图片。
 - [MVP 验证记录](mvp-verification.md)：自动测试及浏览器实际检查范围。
+- [Mocha 测试说明](testing.md)：安装、运行、功能分组与白盒用例设计。
 - [项目运行说明](../README.md)：功能体验、目录、测试和数据限制。
 
 设计草案中的建议尚未全部确认，不应视为已经实现或已经测试的功能。
