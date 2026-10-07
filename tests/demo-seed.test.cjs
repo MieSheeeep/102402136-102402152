@@ -62,4 +62,20 @@ describe('后端演示数据初始化', function () {
     assert.equal(login.user.nickname, '保留的昵称'); assert.equal(login.user.bio, '保留的简介'); assert.equal(login.user.campus, '铜盘校区'); assert.equal(login.user.contact, '微信private');
     assert.match(login.user.avatar, /uploads/); assert.equal((await app.inject('/api/state')).json().items.length, 7);
   }));
+  it('replaces only the old generated avatars and keeps custom uploads and removed avatars', async () => sandbox(async (app, dir, restart) => {
+    const { writeFileSync, readFileSync } = require('node:fs');
+    const { renderAvatar } = require('../server/demo.cjs');
+    const users = app.demoAccounts.map(account => app.db.prepare('SELECT * FROM users WHERE account=?').get(account.account));
+    const oldPath = join(dir, users[0].avatar); const customPath = join(dir, users[1].avatar);
+    writeFileSync(oldPath, await renderAvatar(0, true)); writeFileSync(customPath, Buffer.from('custom-avatar-keep'));
+    app.db.prepare("UPDATE users SET avatar='' WHERE id=?").run(users[2].id);
+    app.db.prepare('DELETE FROM app_meta WHERE key=?').run('demo-avatar-style-v2');
+    app = await restart();
+    const updated = app.db.prepare('SELECT avatar FROM users WHERE id=?').get(users[0].id).avatar;
+    assert.notEqual(updated, users[0].avatar);
+    assert.equal(app.db.prepare('SELECT avatar FROM users WHERE id=?').get(users[1].id).avatar, users[1].avatar);
+    assert.equal(readFileSync(customPath).toString(), 'custom-avatar-keep');
+    assert.equal(app.db.prepare('SELECT avatar FROM users WHERE id=?').get(users[2].id).avatar, '');
+    assert.ok(readFileSync(join(dir, updated)).equals(await renderAvatar(0)));
+  }));
 });

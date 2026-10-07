@@ -17,7 +17,7 @@ npm.cmd run check
 npm.cmd run test:browser
 ```
 
-`npm ci` 根据 `package-lock.json` 安装固定依赖；`npm test` 运行六个测试文件，当前成功时显示 `83 passing`。断言失败会显示用例名称、预期和实际值，并返回非零退出码。`check` 检查页面及后端脚本语法。
+`npm ci` 根据 `package-lock.json` 安装固定依赖；`npm test` 运行六个测试文件，当前成功时显示 `84 passing`。断言失败会显示用例名称、预期和实际值，并返回非零退出码。`check` 检查页面及后端脚本语法。
 
 ```powershell
 # 开发时监视文件变化并自动重跑
@@ -39,7 +39,7 @@ npm.cmd test -- --grep "valid form has no field errors"
 | `tests/security.test.cjs` | 12 | 输出转义、公告详情、旧数据补齐和页面信息展示 |
 | `tests/backend.test.cjs` | 14 | 真实 API、双账号权限、Cookie/CSRF、会话撤销、恢复码、图片归属、数据库重启与备份恢复、公告审核 |
 | `tests/profiles.test.cjs` | 5 | 资料编辑、公开主页、账号表单与图片 URL |
-| `tests/demo-seed.test.cjs` | 4 | 演示数据初始化、重启不还原、原有账号及数据保留 |
+| `tests/demo-seed.test.cjs` | 5 | 演示数据初始化、重启不还原、原有账号及数据保留 |
 
 用 `describe` 分组，用 `it` 定义一个测试。下面的例子使用现有查询函数验证搜索会忽略两端空白和英文大小写：
 
@@ -90,4 +90,4 @@ Mocha 用例覆盖业务逻辑、控制器事件和 HTML 输出。真实布局�
 
 ## 本地完整应用的浏览器验收
 
-`e2e/fullstack.test.cjs` 使用两个隔离的 Chrome 会话及临时真实服务器／数据库，覆盖注册恢复码、带图多区域发布、收藏持久化、昵称头像同步、公开主页统计、完成及取消确认、筛选保持展开、个人设置、管理员公告及急寻申请、恢复密码、编辑和删除、窄屏布局，以及直接打开静态 HTML。它独立于 `npm test` 的 83 项测试，测试数据库不写入项目 var 目录。
+`e2e/fullstack.test.cjs` 使用两个隔离的 Chrome 会话及临时真实服务器／数据库，覆盖注册恢复码、带图多区域发布、收藏持久化、昵称头像同步、公开主页统计、完成及取消确认、筛选保持展开、个人设置、管理员公告及急寻申请、恢复密码、编辑和删除、窄屏布局，以及直接打开静态 HTML。它独立于 `npm test` 的 84 项测试，测试数据库不写入项目 var 目录。
