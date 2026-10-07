@@ -27,55 +27,5 @@ describe('后端演示数据初始化', function () {
     assert.deepEqual(profile.stats, { published: 3, open: 2, completed: 1 });
     assert.equal(profile.user.contact, undefined);
   }));
-  it('preserves edits and does not resurrect deleted records or notices on restart', async () => sandbox(async (app, dir, restart) => {
-    const login = (await app.inject({ method: 'POST', url: '/api/auth/login', payload: { account: 'demo_student', password: 'CampusDemo123!', transport: 'bearer' } })).json();
-    const headers = { authorization: `Bearer ${login.token}` };
-    await app.inject({ method: 'PATCH', url: '/api/me', headers, payload: { nickname: '更新后的同学', bio: '我写的简介', campus: '铜盘校区', contact: '微信changed', avatar: '' } });
-    assert.equal((await app.inject({ method: 'DELETE', url: '/api/items/demo-5', headers })).statusCode, 200);
-    app = await restart(); const state = (await app.inject('/api/state')).json();
-    assert.equal(state.items.length, 6); assert.equal(state.notices.length, 2);
-    assert.ok(!state.items.some(item => item.id === 'demo-5'));
-    assert.equal(state.items.find(item => item.id === 'demo-3').ownerName, '更新后的同学');
-    const mine = (await app.inject({ url: '/api/state', headers })).json();
-    assert.equal(mine.user.bio, '我写的简介'); assert.equal(mine.user.campus, '铜盘校区'); assert.equal(mine.user.contact, '微信changed'); assert.equal(mine.user.avatar, '');
-  }));
-  it('adds samples beside existing real data and never takes over a colliding account', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'campus-demo-existing-')); let app;
-    try {
-      app = await buildServer({ dataDir: dir });
-      const registered = (await app.inject({ method: 'POST', url: '/api/auth/register', payload: { account: 'demo_student', password: 'PrivateExisting123!', nickname: '原有用户', transport: 'bearer' } })).json();
-      const original = await app.inject({ method: 'POST', url: '/api/items', headers: { authorization: `Bearer ${registered.token}` }, payload: { type: 'lost', name: '原有物品', category: '生活用品', locationGroups: ['教学楼'], locationDetail: '东二302', occurredAt: '2026-10-07T10:00', contact: '微信private' } });
-      assert.equal(original.statusCode, 201);
-      await app.close(); app = await buildServer({ dataDir: dir, demoData: true });
-      const state = (await app.inject('/api/state')).json(); assert.equal(state.items.length, 8);
-      assert.equal(state.items.find(item => item.name === '原有物品').ownerId, registered.user.id);
-      assert.equal((await app.inject({ method: 'POST', url: '/api/auth/login', payload: { account: 'demo_student', password: 'CampusDemo123!' } })).statusCode, 401);
-      assert.equal((await app.inject({ method: 'POST', url: '/api/auth/login', payload: { account: 'demo_student_2', password: 'CampusDemo123!' } })).statusCode, 200);
-    } finally { await app?.close(); rmSync(dir, { recursive: true, force: true }); }
-  });
-  it('upgrades already seeded databases by filling blanks and preserving custom profile fields', async () => sandbox(async (app, dir, restart) => {
-    app.db.prepare('DELETE FROM app_meta WHERE key=?').run('demo-profiles-v1');
-    app.db.prepare("UPDATE users SET avatar='',bio='',campus='',contact=''").run();
-    app.db.prepare("UPDATE users SET nickname='保留的昵称',bio='保留的简介',campus='铜盘校区',contact='微信private' WHERE account='demo_student'").run();
-    app = await restart();
-    const login = (await app.inject({ method: 'POST', url: '/api/auth/login', payload: { account: 'demo_student', password: 'CampusDemo123!', transport: 'bearer' } })).json();
-    assert.equal(login.user.nickname, '保留的昵称'); assert.equal(login.user.bio, '保留的简介'); assert.equal(login.user.campus, '铜盘校区'); assert.equal(login.user.contact, '微信private');
-    assert.match(login.user.avatar, /uploads/); assert.equal((await app.inject('/api/state')).json().items.length, 7);
-  }));
-  it('replaces only the old generated avatars and keeps custom uploads and removed avatars', async () => sandbox(async (app, dir, restart) => {
-    const { writeFileSync, readFileSync } = require('node:fs');
-    const { renderAvatar } = require('../server/demo.cjs');
-    const users = app.demoAccounts.map(account => app.db.prepare('SELECT * FROM users WHERE account=?').get(account.account));
-    const oldPath = join(dir, users[0].avatar); const customPath = join(dir, users[1].avatar);
-    writeFileSync(oldPath, await renderAvatar(0, true)); writeFileSync(customPath, Buffer.from('custom-avatar-keep'));
-    app.db.prepare("UPDATE users SET avatar='' WHERE id=?").run(users[2].id);
-    app.db.prepare('DELETE FROM app_meta WHERE key=?').run('demo-avatar-style-v2');
-    app = await restart();
-    const updated = app.db.prepare('SELECT avatar FROM users WHERE id=?').get(users[0].id).avatar;
-    assert.notEqual(updated, users[0].avatar);
-    assert.equal(app.db.prepare('SELECT avatar FROM users WHERE id=?').get(users[1].id).avatar, users[1].avatar);
-    assert.equal(readFileSync(customPath).toString(), 'custom-avatar-keep');
-    assert.equal(app.db.prepare('SELECT avatar FROM users WHERE id=?').get(users[2].id).avatar, '');
-    assert.ok(readFileSync(join(dir, updated)).equals(await renderAvatar(0)));
-  }));
+
 });

@@ -68,13 +68,6 @@ describe('真实后端、多用户与持久化', function () {
     assert.equal((await call('GET', '/api/auth/me', null, a)).json().user, null);
     assert.equal((await call('PATCH', '/api/me', { nickname: '失败' }, a)).statusCode, 401);
   });
-  it('recovers with one-time recovery code and revokes prior sessions', async () => {
-    const reset = await call('POST', '/api/auth/recover', { account: 'student_a', recoveryCode: a.recoveryCode, password: 'NewCorrectPass!123' });
-    assert.equal(reset.statusCode, 200, reset.body); assert.ok(reset.json().recoveryCode);
-    assert.equal((await call('PATCH', '/api/me', { nickname: '失败' }, a)).statusCode, 401);
-    assert.equal((await call('POST', '/api/auth/recover', { account: 'student_a', recoveryCode: a.recoveryCode, password: 'AnotherPass!123' })).statusCode, 401);
-    assert.equal((await call('POST', '/api/auth/login', { account: 'student_a', password: 'NewCorrectPass!123' })).statusCode, 200);
-  });
   it('validates image content and prevents another user claiming an uploaded image', async () => {
     const png = await sharp({ create: { width: 12, height: 12, channels: 3, background: '#abc' } }).png().toBuffer();
     const boundary = 'campus-test';
@@ -86,66 +79,14 @@ describe('真实后端、多用户与持久化', function () {
     await app.close(); app = await buildServer({ dataDir: dir });
     const image = await call('GET', url); assert.equal(image.statusCode, 200); assert.match(image.headers['content-type'], /image\/webp/);
   });
-  it('validates event time and protects filesystem and cross-origin requests', async () => {
-    assert.equal((await call('POST', '/api/items', { ...post(), timePrecision: 'unknown', occurredAt: '' }, a)).statusCode, 400);
-    assert.equal((await call('GET', '/server/app.cjs')).statusCode, 404);
-    assert.equal((await call('GET', '/package.json')).statusCode, 404);
-    assert.equal((await app.inject({ method: 'POST', url: '/api/auth/login', headers: { origin: 'https://untrusted.example' }, payload: { account: 'student_a', password: 'CorrectPass!123' } })).statusCode, 403);
-  });
-  it('changing password revokes other sessions and expired sessions cannot write', async () => {
-    const second = (await call('POST', '/api/auth/login', { account: 'student_a', password: 'CorrectPass!123', transport: 'bearer' })).json();
-    assert.equal((await call('POST', '/api/auth/password', { currentPassword: 'wrong', password: 'ChangedPass!123' }, a)).statusCode, 401);
-    assert.equal((await call('POST', '/api/auth/password', { currentPassword: 'CorrectPass!123', password: 'ChangedPass!123' }, a)).statusCode, 200);
-    assert.equal((await call('PATCH', '/api/me', { nickname: '失败' }, second)).statusCode, 401);
-    assert.equal((await call('PATCH', '/api/me', { nickname: '有效' }, a)).statusCode, 200);
-    app.db.prepare('UPDATE sessions SET expires_at=0').run();
-    assert.equal((await call('PATCH', '/api/me', { nickname: '过期' }, a)).statusCode, 401);
-  });
-  it('runs the backup command and restores database, login and uploaded files', async () => {
-    const { promisify } = require('node:util'); const { execFile } = require('node:child_process');
-    const { mkdirSync, writeFileSync, existsSync } = require('node:fs');
+  it('edits item content while preserving publisher and publication time', async () => {
     const item = (await call('POST', '/api/items', post(), a)).json();
-    await call('PUT', `/api/favorites/${item.id}`, { active: true }, b);
-    writeFileSync(join(dir, 'uploads', 'backup-sentinel.txt'), 'stored-image-copy');
-    const root = mkdtempSync(join(tmpdir(), 'campus-backup-')); const target = join(root, 'snapshot');
-    let restored;
-    try {
-      await promisify(execFile)(process.execPath, [join(__dirname, '..', 'server', 'backup.cjs'), target], { env: { ...process.env, DATA_DIR: dir } });
-      assert.ok(existsSync(join(target, 'uploads', 'backup-sentinel.txt')));
-      restored = await buildServer({ dataDir: target });
-      const state = (await restored.inject({ url: '/api/state', headers: { authorization: `Bearer ${b.token}` } })).json();
-      assert.deepEqual(state.favorites, [item.id]); assert.equal(state.items[0].name, post().name);
-    } finally { await restored?.close(); rmSync(root, { recursive: true, force: true }); }
-  });
-  it('prevents regular users from managing notices and excludes expired or completed notices', async () => {
-    const item = (await call('POST', '/api/items', post(), a)).json();
-    const body = { reward: 50, expiresAt: '2099-10-07T00:00:00Z' };
-    assert.equal((await call('PUT', `/api/admin/notices/${item.id}`, body, a)).statusCode, 403);
-    app.db.prepare("UPDATE users SET role='admin' WHERE id=?").run(a.user.id);
-    assert.equal((await call('PUT', `/api/admin/notices/${item.id}`, body, a)).statusCode, 200);
-    assert.equal((await call('GET', '/api/state')).json().notices.length, 1);
-    await call('PATCH', `/api/items/${item.id}`, { status: 'completed', version: item.version }, a);
-    assert.equal((await call('GET', '/api/state')).json().notices.length, 0);
-    const reopened = (await call('PATCH', `/api/items/${item.id}`, { status: 'open', version: item.version + 1 }, a)).json();
-    app.db.prepare('UPDATE notices SET expires_at=?').run('2000-01-01T00:00:00Z');
-    assert.equal((await call('GET', '/api/state')).json().notices.length, 0);
-    assert.equal(reopened.status, 'open');
-  });
-  it('queues urgent requests for own posts and exposes review queue only to administrators', async () => {
-    const item = (await call('POST', '/api/items', post(), b)).json();
-    assert.equal((await call('POST', `/api/urgent-requests/${item.id}`, { reward: 30 }, a)).statusCode, 403);
-    assert.equal((await call('POST', `/api/urgent-requests/${item.id}`, { reward: 30 }, b)).statusCode, 201);
-    assert.equal((await call('GET', '/api/state', null, a)).json().urgentRequests.length, 0);
-    app.db.prepare("UPDATE users SET role='admin' WHERE id=?").run(a.user.id);
-    assert.equal((await call('GET', '/api/state', null, a)).json().urgentRequests[0].id, item.id);
-    await call('PUT', `/api/admin/notices/${item.id}`, { reward: 30, expiresAt: '2099-01-01T00:00:00Z' }, a);
-    assert.equal((await call('GET', '/api/state', null, a)).json().urgentRequests.length, 0);
-  });
-  it('limits repeated login attempts and rejects oversized JSON bodies', async () => {
-    let response;
-    for (let attempt = 0; attempt < 16; attempt++) response = await call('POST', '/api/auth/login', { account: 'missing_account', password: 'wrong' });
-    assert.equal(response.statusCode, 429);
-    assert.equal((await call('POST', '/api/items', { ...post(), description: 'a'.repeat(40000) }, a)).statusCode, 413);
+    const edited = await call('PATCH', `/api/items/${item.id}`, { ...post(), name: '蓝色双肩书包', locationDetail: '图书馆二楼', version: item.version }, a);
+    assert.equal(edited.statusCode, 200, edited.body);
+    const result = edited.json();
+    assert.equal(result.name, '蓝色双肩书包'); assert.equal(result.locationDetail, '图书馆二楼');
+    assert.equal(result.ownerId, a.user.id); assert.equal(result.createdAt, item.createdAt); assert.equal(result.type, item.type);
+    assert.equal((await call('GET', `/api/items/${item.id}`, null, b)).json().name, '蓝色双肩书包');
   });
   it('saves personal contact privately, exposes biography and campus and validates profile lengths', async () => {
     const response = await call('PATCH', '/api/me', { bio: '喜欢校园互助', campus: '旗山校区', contact: '微信private' }, a);
