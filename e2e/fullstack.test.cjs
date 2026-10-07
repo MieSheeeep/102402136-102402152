@@ -40,6 +40,25 @@ describe('网页真实多账号流程（Chrome）', function () {
     await a.locator('[name=locationDetail]').fill('东二302'); await a.locator('[name=occurredAt]').fill('2026-10-07T09:30'); await a.locator('[name=contact]').fill('微信test_student');
     const image = await sharp({ create: { width: 200, height: 150, channels: 3, background: '#467966' } }).png().toBuffer();
     await a.locator('#item-image').setInputFiles({ name: 'bag.png', mimeType: 'image/png', buffer: image });
+    assert.equal(await a.locator('.item-image-editor.has-image').count(), 1);
+    assert.equal(await a.locator('#item-image-filename').innerText(), 'bag.png');
+    await a.locator('#item-image').setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('invalid image') });
+    assert.equal(await a.locator('#item-image-filename').innerText(), 'bag.png');
+    await a.locator('.item-image-zone').evaluate((zone, bytes) => {
+      const transfer = new DataTransfer(); transfer.items.add(new File([new Uint8Array(bytes)], 'dropped.png', { type: 'image/png' }));
+      zone.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+    }, Array.from(image));
+    assert.equal(await a.locator('#item-image-filename').innerText(), 'dropped.png');
+    await a.locator('[name=timePrecision]').selectOption('date');
+    assert.equal(await a.locator('#item-image-filename').innerText(), 'dropped.png');
+    assert.equal(await a.locator('.item-image-editor.has-image').count(), 1);
+    await a.locator('[name=timePrecision]').selectOption('datetime');
+    await a.locator('[name=occurredAt]').fill('2026-10-07T09:30');
+    await a.locator('[data-action=remove-image]').click();
+    assert.equal(await a.locator('.item-image-editor.has-image').count(), 0);
+    assert.equal(await a.locator('[name=name]').inputValue(), '端到端蓝色书包');
+    await a.locator('#item-image').setInputFiles({ name: 'bag.png', mimeType: 'image/png', buffer: image });
+
     await a.locator('#publish-form [type=submit]').click(); await a.waitForURL(/#success\//); itemId = new URL(a.url()).hash.split('/')[1];
     await go(b, `detail/${itemId}`); assert.match(await b.locator('.detail-copy').innerText(), /模糊范围/);
     assert.match(await b.locator('.detail-picture img').getAttribute('src'), /uploads/);

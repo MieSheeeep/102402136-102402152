@@ -146,7 +146,7 @@
       returnAfterLogin = `${currentRoute.page}${currentRoute.id ? '/' + encodeURIComponent(currentRoute.id) : ''}`;
       main.innerHTML = V.auth('login');
     }
-    if (pendingItemFile && document.querySelector('#item-preview')) document.querySelector('#item-preview').src = previewUrl;
+    if (pendingItemFile && document.querySelector('#item-preview')) syncItemImage();
     const freshPanel = document.querySelector('#advanced-filters');
     const freshQuick = document.querySelector('.compact-filters');
     if (!changed && oldQuick && freshQuick?.replaceWith) {
@@ -525,7 +525,7 @@
           const url = URL.createObjectURL(new Blob([`校园失物招领账号恢复码\n账号：${trigger.dataset.account || state.user?.account || ''}\n恢复码：${trigger.dataset.value}\n`], { type: 'text/plain;charset=utf-8' }));
           const link = document.createElement('a'); link.href = url; link.download = '校园失物招领-恢复码.txt'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); break;
         }
-        case 'remove-image': pendingItemFile = null; draft = { ...readForm(), image: 'assets/default-item.svg' }; render(); break;
+        case 'remove-image': pendingItemFile = null; if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = ''; } draft = { ...readForm(), image: 'assets/default-item.svg' }; render(); document.querySelector('#item-image')?.focus({ preventScroll: true }); break;
         case 'admin-delete': openModal(V.confirmation('删除这条发布？', '该信息及其收藏记录将被移除。', 'confirm-admin-delete', id, true)); break;
         case 'dismiss-toast': clearTimeout(toastTimer); toastEl.hidden = true; break;
         case 'type': filters.type = filters.type === trigger.dataset.value ? 'all' : trigger.dataset.value; render(); document.querySelector(`[data-action="type"][data-value="${trigger.dataset.value}"]`)?.focus(); break;
@@ -624,13 +624,41 @@
       event.preventDefault(); moveNotice(noticeIndex() + (event.key === 'ArrowRight' ? 1 : -1));
     }
   });
+  function syncItemImage() {
+    const editor = document.querySelector('#item-image-editor'); if (!editor || !pendingItemFile) return;
+    editor.classList.add('has-image'); editor.querySelector('#item-preview').src = previewUrl;
+    editor.querySelector('[data-action="remove-image"]').hidden = false;
+    editor.querySelector('#item-image-filename').textContent = pendingItemFile.name;
+  }
+  function selectItemImage(file) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast('请选择不超过 5 MB 的 JPG、PNG 或 WebP 图片', 'error'); return;
+    }
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = URL.createObjectURL(file); pendingItemFile = file; syncItemImage();
+  }
+  main.addEventListener('dragover', event => {
+    const zone = event.target.closest('.item-image-zone'); if (!zone) return;
+    event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; zone.classList.add('drag-over');
+  });
+  main.addEventListener('dragleave', event => {
+    const zone = event.target.closest('.item-image-zone');
+    if (zone && !zone.contains(event.relatedTarget)) zone.classList.remove('drag-over');
+  });
+  main.addEventListener('drop', event => {
+    const zone = event.target.closest('.item-image-zone'); if (!zone) return;
+    event.preventDefault(); zone.classList.remove('drag-over');
+    if (event.dataTransfer.files.length > 1) { toast('每条信息请选择一张物品图片', 'error'); return; }
+    selectItemImage(event.dataTransfer.files[0]);
+  });
   main.addEventListener('change', async event => {
     if (['item-image', 'avatar-file'].includes(event.target.id)) {
       const file = event.target.files[0]; if (!file) return;
+      if (event.target.id === 'item-image') { selectItemImage(file); event.target.value = ''; return; }
       if (file.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast('请选择不超过 5 MB 的 JPG、PNG 或 WebP 图片', 'error'); event.target.value = ''; return; }
       if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl = URL.createObjectURL(file);
-      if (event.target.id === 'item-image') { pendingItemFile = file; document.querySelector('#item-preview').src = previewUrl; }
-      else { pendingAvatarFile = file; const old = document.querySelector('#profile-form .user-avatar'); const image = document.createElement('img'); image.className = 'user-avatar'; image.alt = '头像预览'; image.src = previewUrl; old.replaceWith(image); }
+      { pendingAvatarFile = file; const old = document.querySelector('#profile-form .user-avatar'); const image = document.createElement('img'); image.className = 'user-avatar'; image.alt = '头像预览'; image.src = previewUrl; old.replaceWith(image); }
       return;
     }
     if (event.target.id === 'timePrecision') {
