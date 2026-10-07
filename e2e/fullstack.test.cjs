@@ -53,7 +53,7 @@ describe('网页真实多账号流程（Chrome）', function () {
     await go(a, 'my');
     await a.waitForFunction(() => !document.querySelector('.tap-pressed, .tap-release'));
   });
-  it('keeps bottom navigation visible on publish, scroll and keyboard viewport changes', async () => {
+  it('keeps bottom navigation fixed across pages, scrolling and viewport changes', async () => {
     const page = await cb.newPage();
     try {
       await page.addInitScript(() => {
@@ -61,21 +61,25 @@ describe('网页真实多账号流程（Chrome）', function () {
         Object.defineProperties(viewport, { height: { value: innerHeight, writable: true }, offsetTop: { value: 0, writable: true } });
         Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true });
       });
-      await page.goto(`${url}/#home`); await page.locator('#search-form').waitFor();
-      await page.locator('.mobile-nav [data-nav=publish]').click(); await page.locator('#publish-form').waitFor();
-      const visibleNav = async () => assert.equal(await page.locator('.mobile-nav').evaluate(nav => {
-        const r = nav.getBoundingClientRect(); const viewport = visualViewport;
-        return getComputedStyle(nav).display !== 'none' && r.top >= viewport.offsetTop && r.bottom <= viewport.height + viewport.offsetTop + 1;
+      const fixedNav = async () => assert.equal(await page.locator('.mobile-nav').evaluate(nav => {
+        const r = nav.getBoundingClientRect();
+        return getComputedStyle(nav).display !== 'none' && getComputedStyle(nav).position === 'fixed' && Math.abs(r.bottom - innerHeight) < 1;
       }), true);
-      await visibleNav();
-      await page.locator('#description').scrollIntoViewIfNeeded(); await visibleNav();
+      for (const width of [390, 1200]) {
+        await page.setViewportSize({ width, height: 844 });
+        for (const route of ['home', 'publish', 'my', 'settings', 'login', 'register', 'recover']) {
+          await go(page, route); await fixedNav();
+          await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
+          await fixedNav();
+        }
+      }
+      await page.setViewportSize({ width: 390, height: 844 }); await go(page, 'publish');
       await page.locator('#description').focus();
-      await page.evaluate(() => { visualViewport.height = innerHeight - 300; visualViewport.dispatchEvent(new Event('resize')); });
-      await visibleNav();
+      await page.evaluate(() => { visualViewport.height = innerHeight - 300; visualViewport.offsetTop = 100; visualViewport.dispatchEvent(new Event('resize')); visualViewport.dispatchEvent(new Event('scroll')); });
+      await fixedNav();
+      await page.setViewportSize({ width: 390, height: 544 }); await fixedNav();
       await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
       assert.equal(await page.locator('.submit-button').evaluate(button => button.getBoundingClientRect().bottom < document.querySelector('.mobile-nav').getBoundingClientRect().top), true);
-      await page.evaluate(() => { visualViewport.height = innerHeight; visualViewport.dispatchEvent(new Event('resize')); });
-      await visibleNav();
       assert.equal(await page.locator('.mobile-nav [data-nav=publish]').getAttribute('aria-current'), 'page');
     } finally { await page.close(); }
   });
