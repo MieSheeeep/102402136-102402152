@@ -1,6 +1,10 @@
-(function () {
+(function (root, factory) {
+  const seed = factory();
+  if (typeof module === 'object' && module.exports) module.exports = seed;
+  else root.CampusSeed = seed;
+})(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
-  window.CampusSeed = function () {
+  const seed = function () {
     const base = Date.now();
     const records = [
       ['黑色长柄雨伞', 'lost', '生活用品', '教学楼', '旗山校区 · 东2教学楼302', '伞柄有一圈银色金属环，伞套是深蓝色。如果有同学看到，麻烦帮忙留意一下。', 'student-lin', '林同学', 2, 'open'],
@@ -17,9 +21,10 @@
       return { id: `demo-${index + 1}`, name: r[0], type: r[1], category: r[2], locationGroup: r[3], locationDetail: r[4], description: r[5], ownerId: r[6], ownerName: r[7], occurredAt: localTime, contact: '微信：campus_demo', status: r[9], image: 'assets/default-item.svg', createdAt: time.toISOString(), updatedAt: time.toISOString(), isDemo: true };
     }) };
   };
-  window.CampusSeed.upgrade = function (state) {
+  seed.upgrade = function (state) {
     if (state.noticeRevision === 1) return state;
-    const missing = state.items.some(item => item.id === 'demo-7') ? [] : [window.CampusSeed().items.find(item => item.id === 'demo-7')];
+    const missing = state.items.some(item => item.id === 'demo-7') ? [] : [seed().items.find(item => item.id === 'demo-7')];
     return { ...state, noticeRevision: 1, items: [...state.items, ...missing] };
   };
-})();
+  return seed;
+});

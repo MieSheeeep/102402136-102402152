@@ -47,6 +47,7 @@ async function buildServer(options = {}) {
       reward INTEGER NOT NULL DEFAULT 0, expires_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS urgent_requests (item_id TEXT PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
       reward INTEGER NOT NULL, created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     PRAGMA user_version=1;`);
   const app = Fastify({ logger: options.logger || false, bodyLimit: 32 * 1024, trustProxy: false });
   await app.register(require('@fastify/cookie'));
@@ -54,6 +55,10 @@ async function buildServer(options = {}) {
   await app.register(require('@fastify/multipart'), { limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 0, parts: 1 } });
   app.decorate('db', db);
   app.addHook('onClose', async () => db.close());
+  if (options.demoData) {
+    try { app.decorate('demoAccounts', await require('./demo.cjs').seedDemo(db, hashPassword)); }
+    catch (error) { await app.close(); throw error; }
+  }
   const root = resolve(__dirname, '..');
   await app.register(require('@fastify/static'), { root: join(root, 'assets'), prefix: '/assets/', decorateReply: false });
   await app.register(require('@fastify/static'), { root: join(root, 'css'), prefix: '/css/', decorateReply: false });

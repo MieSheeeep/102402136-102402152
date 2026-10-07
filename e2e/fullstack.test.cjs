@@ -122,4 +122,17 @@ describe('网页真实多账号流程（Chrome）', function () {
     await page.locator('.item-card').first().waitFor(); assert.equal(await page.locator('.item-card').count(), 7);
     assert.equal(await page.locator('#auth-form').count(), 0); await page.close();
   });
+  it('shows seeded posts and notices and lets a demonstration account manage its own content', async () => {
+    const demoDir = mkdtempSync(join(tmpdir(), 'campus-demo-web-')); let demoApp, page;
+    try {
+      demoApp = await buildServer({ dataDir: demoDir, demoData: true }); const demoUrl = await demoApp.listen({ host: '127.0.0.1', port: 0 });
+      page = await browser.newPage(); await page.goto(demoUrl); await page.locator('.item-card').first().waitFor();
+      assert.equal(await page.locator('.item-card').count(), 7); assert.equal(await page.locator('.urgent-slide').count(), 3);
+      await page.goto(`${demoUrl}/#login`); await page.locator('[name=account]').fill('demo_student'); await page.locator('[name=password]').fill('CampusDemo123!');
+      await page.locator('#auth-form button').click(); await page.locator('.account-overview').waitFor();
+      assert.equal(await page.locator('.account-stats strong').first().innerText(), '3');
+      assert.equal(await page.locator('.account-stats strong').nth(3).innerText(), '2');
+      assert.equal(await page.locator('.item-card').count(), 3); assert.equal(await page.locator('[data-action=edit]').count(), 3);
+    } finally { await page?.close(); await demoApp?.close(); rmSync(demoDir, { recursive: true, force: true }); }
+  });
 });
