@@ -53,6 +53,32 @@ describe('网页真实多账号流程（Chrome）', function () {
     await go(a, 'my');
     await a.waitForFunction(() => !document.querySelector('.tap-pressed, .tap-release'));
   });
+  it('keeps bottom navigation visible on publish, scroll and keyboard viewport changes', async () => {
+    const page = await cb.newPage();
+    try {
+      await page.addInitScript(() => {
+        const viewport = new EventTarget();
+        Object.defineProperties(viewport, { height: { value: innerHeight, writable: true }, offsetTop: { value: 0, writable: true } });
+        Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true });
+      });
+      await page.goto(`${url}/#home`); await page.locator('#search-form').waitFor();
+      await page.locator('.mobile-nav [data-nav=publish]').click(); await page.locator('#publish-form').waitFor();
+      const visibleNav = async () => assert.equal(await page.locator('.mobile-nav').evaluate(nav => {
+        const r = nav.getBoundingClientRect(); const viewport = visualViewport;
+        return getComputedStyle(nav).display !== 'none' && r.top >= viewport.offsetTop && r.bottom <= viewport.height + viewport.offsetTop + 1;
+      }), true);
+      await visibleNav();
+      await page.locator('#description').scrollIntoViewIfNeeded(); await visibleNav();
+      await page.locator('#description').focus();
+      await page.evaluate(() => { visualViewport.height = innerHeight - 300; visualViewport.dispatchEvent(new Event('resize')); });
+      await visibleNav();
+      await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
+      assert.equal(await page.locator('.submit-button').evaluate(button => button.getBoundingClientRect().bottom < document.querySelector('.mobile-nav').getBoundingClientRect().top), true);
+      await page.evaluate(() => { visualViewport.height = innerHeight; visualViewport.dispatchEvent(new Event('resize')); });
+      await visibleNav();
+      assert.equal(await page.locator('.mobile-nav [data-nav=publish]').getAttribute('aria-current'), 'page');
+    } finally { await page.close(); }
+  });
   it('publishes real image and multiple locations; another account can view and save it', async () => {
     await go(a, 'publish'); await a.locator('[name=name]').fill('端到端蓝色书包'); await a.locator('[name=category]').selectOption('生活用品');
     await a.locator('.publish-area-chip:has(input[value="教学楼"])').click(); await a.locator('.publish-area-chip:has(input[value="食堂"])').click();

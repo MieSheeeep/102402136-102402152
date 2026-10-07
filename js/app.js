@@ -16,6 +16,16 @@
   const modal = document.querySelector('#modal');
   const toastEl = document.querySelector('#toast');
   const warning = document.querySelector('#storage-warning');
+  // Keep navigation above the keyboard and inside the actual visible viewport.
+  function syncNavigationInset() {
+    const viewport = window.visualViewport;
+    const inset = viewport ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop) : 0;
+    document.documentElement?.style.setProperty('--navigation-inset', `${inset}px`);
+  }
+  syncNavigationInset();
+  window.visualViewport?.addEventListener('resize', syncNavigationInset);
+  window.visualViewport?.addEventListener('scroll', syncNavigationInset);
+  window.addEventListener('resize', syncNavigationInset);
   let state;
   const defaults = () => ({ keyword: '', type: 'all', locations: [], categories: [], timeRange: 'all', dateStart: '', dateEnd: '', sort: state?.preferences?.sort || 'newest', favoritesOnly: false });
   let filters = defaults();

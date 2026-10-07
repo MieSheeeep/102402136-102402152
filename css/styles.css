@@ -211,3 +211,6 @@ button,input,select,textarea{font-family:inherit}h1,h2,h3,strong{font-weight:600
 
 /* Shared press and release feedback; scale leaves existing transform effects intact. */
 .tap-inline{display:inline-block}.tap-pressed{scale:.97;opacity:.88;transition:scale 80ms ease,opacity 80ms ease}.card-link.tap-pressed,.item-image-zone.tap-pressed{scale:.99}.tap-release{animation:tap-release 220ms cubic-bezier(.22,1,.36,1)}.card-link.tap-release,.item-image-zone.tap-release{--tap-start:.99}@keyframes tap-release{from{scale:var(--tap-start,.97);opacity:.88}to{scale:1;opacity:1}}@media(prefers-reduced-motion:reduce){.tap-pressed{scale:none!important;transition:none}.tap-release{animation:none;box-shadow:inset 0 0 0 2px #71846636}}
+
+/* Navigation remains in the visible viewport while filling long forms. */
+@media(max-width:760px){.mobile-nav{bottom:var(--navigation-inset,0px)}.site-footer{padding-bottom:calc(100px + env(safe-area-inset-bottom) + var(--navigation-inset,0px))}.publish-form{scroll-margin-bottom:calc(82px + env(safe-area-inset-bottom))}.publish-form input,.publish-form select,.publish-form textarea{scroll-margin-bottom:calc(82px + env(safe-area-inset-bottom))}}
