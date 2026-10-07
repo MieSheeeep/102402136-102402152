@@ -12,6 +12,7 @@ const groups = [
   { name: '06-contact-favorite', title: '查看、联系与收藏', subtitle: '打开详情查看时间地点，复制联系方式，收藏后再查看', shots: [['detail.jpg', '① 详情：发布者、时间与地点'], ['detail-contact.jpg', '② 联系发布者与复制入口'], ['favorite-list.jpg', '③ 我的收藏：保留物品信息']] },
   { name: '07-profile-settings', title: '个人主页与设置', subtitle: '个人概况、公开主页、资料编辑和浏览偏好', shots: [['my.jpg', '① 个人概况'], ['public-profile.jpg', '② 公开主页'], ['settings.jpg', '③ 资料编辑'], ['settings-preferences.jpg', '④ 浏览偏好']] },
   { name: '08-notices', title: '紧急寻物公告', subtitle: '三条公告依次展示，核心信息为物品、时间、地点和酬谢', short: true, shots: [['home.jpg', '① 黑色长柄雨伞', { left: 0, top: 70, width: 480, height: 190 }], ['notice-2.jpg', '② 高等数学课本', { left: 0, top: 65, width: 467, height: 185 }], ['notice-3.jpg', '③ 黑色U盘', { left: 0, top: 65, width: 467, height: 185 }]] },
+  { name: '09-color-hints', title: '颜色提示', subtitle: '寻物、招领和已完成分别用不同配色，同时保留文字状态', shots: [['home.jpg', '① 寻物：暖棕色'], ['my.jpg', '② 招领：浅绿色'], ['completed-list.jpg', '③ 已完成：灰蓝色']] },
 ];
 const escape = value => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 const label = (x, y, value, size = 14, color = '#294237') => `<text x="${x}" y="${y}" fill="${color}" font-family="Microsoft YaHei, sans-serif" font-size="${size}">${escape(value)}</text>`;

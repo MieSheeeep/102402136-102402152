@@ -180,6 +180,25 @@
           }
         ]
       ]
+    },
+    {
+      "name": "09-color-hints",
+      "title": "颜色提示",
+      "subtitle": "寻物、招领和已完成分别用不同配色，同时保留文字状态",
+      "shots": [
+        [
+          "home.jpg",
+          "① 寻物：暖棕色"
+        ],
+        [
+          "my.jpg",
+          "② 招领：浅绿色"
+        ],
+        [
+          "completed-list.jpg",
+          "③ 已完成：灰蓝色"
+        ]
+      ]
     }
   ],
   "outputs": [
@@ -352,6 +371,27 @@
         {
           "filename": "notice-3.jpg",
           "caption": "③ 黑色U盘"
+        }
+      ]
+    },
+    {
+      "filename": "09-color-hints.png",
+      "width": 1066,
+      "height": 713,
+      "displayWidth": 760,
+      "title": "颜色提示",
+      "shots": [
+        {
+          "filename": "home.jpg",
+          "caption": "① 寻物：暖棕色"
+        },
+        {
+          "filename": "my.jpg",
+          "caption": "② 招领：浅绿色"
+        },
+        {
+          "filename": "completed-list.jpg",
+          "caption": "③ 已完成：灰蓝色"
         }
       ]
     }
