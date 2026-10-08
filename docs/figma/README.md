@@ -21,12 +21,16 @@
 
 ## 页面参考
 
-![首页](home-preview.png)
+每张横向排列7个页面，共6张拼图覆盖全部42个页面与状态。各页保留原始390×844尺寸，没有放大。点击图片可查看完整大图。运行`node docs/figma/render-collages.cjs`可重新拼接，原始导出图在`screens/`目录。
 
-![筛选展开](filters-preview.png)
+[![首页与查找](collage-1.png)](collage-1.png)
 
-![我的](my-preview.png)
+[![筛选与物品详情](collage-2.png)](collage-2.png)
 
-![发布](publish-preview.png)
+[![发布与编辑](collage-3.png)](collage-3.png)
 
-![确认弹窗](dialog-preview.png)
+[![个人发布与操作确认](collage-4.png)](collage-4.png)
+
+[![资料设置与账号](collage-5.png)](collage-5.png)
+
+[![联系与其他功能](collage-6.png)](collage-6.png)
