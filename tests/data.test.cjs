@@ -35,6 +35,47 @@ describe('数据校验、筛选与状态管理', () => {
     assert.equal(D.queryItems(list, { keyword: '   ' }, []).length, 2);
     assert.equal(D.queryItems(list, { keyword: '\u3000' }, []).length, 2);
   });
+  it('accepts the three supported image sources and rejects everything else', () => {
+    const uuid = 'a'.repeat(8) + '-' + 'b'.repeat(4) + '-' + 'c'.repeat(4) + '-' + 'd'.repeat(4) + '-' + 'e'.repeat(12);
+    for (const good of ['assets/default-item.svg', `/uploads/${uuid}.webp`,
+                        'data:image/webp;base64,UklGRg==', 'data:image/jpeg;base64,/9j/4A==', 'data:image/png;base64,iVBORw0KGgo=']) {
+      assert.equal(D.validImage(good), true, `应接受 ${good.slice(0, 30)}`);
+    }
+    for (const bad of ['', '   ', null, undefined, 123, {}, 'assets/other.png',
+                       'http://example.com/x.webp', '/uploads/not-a-uuid.webp',
+                       'data:image/svg+xml;base64,PHN2Zz4=',   // SVG 可内嵌脚本，刻意不放行
+                       'data:text/html;base64,PHNjcmlwdD4=',
+                       'data:image/webp;base64,!!!',             // 非 base64 字符
+                       'javascript:alert(1)']) {
+      assert.equal(D.validImage(bad), false, `应拒绝 ${String(bad).slice(0, 30)}`);
+    }
+  });
+  it('rejects an image longer than the storage limit', () => {
+    const huge = 'data:image/webp;base64,' + 'A'.repeat(D.imageLimit);
+    assert.ok(huge.length > D.imageLimit);
+    assert.equal(D.validImage(huge), false);
+    assert.equal(D.validateItem({ ...input, image: huge }).image, '图片过大，请换一张更小的图片');
+  });
+  it('createItem keeps a valid local image and uses the default when none is given', () => {
+    const local = 'data:image/webp;base64,UklGRg==';
+    assert.equal(D.createItem({ ...input, image: local }, 'me', now).image, local);
+    assert.equal(D.createItem({ ...input, image: '' }, 'me', now).image, 'assets/default-item.svg');
+    assert.equal(D.createItem(input, 'me', now).image, 'assets/default-item.svg');
+    // 非法图片应当在校验阶段就被拦下，而不是静默回退成默认图
+    assert.throws(() => D.createItem({ ...input, image: 'data:image/svg+xml;base64,PHN2Zz4=' }, 'me', now), /信息填写不完整/);
+  });
+  it('a stored state without an image field is still readable (历史数据兼容)', () => {
+    // 老版本写入的数据可能没有 image 字段，不能因为加了图片校验就把人锁在门外
+    const legacy = memory(JSON.stringify({ ...seed(), items: [{ ...item(), image: undefined }] }));
+    assert.equal(D.createStore(legacy, seed).load().items.length, 1);
+  });
+  it('a stored state whose item carries an unsupported image is rejected', () => {
+    const good = { ...seed(), items: [item({ image: 'data:image/webp;base64,UklGRg==' })] };
+    const storage = memory(JSON.stringify(good));
+    assert.equal(D.createStore(storage, seed).load().items[0].image, 'data:image/webp;base64,UklGRg==');
+    const bad = memory(JSON.stringify({ ...seed(), items: [item({ image: 'data:image/svg+xml;base64,PHN2Zz4=' })] }));
+    assert.throws(() => D.createStore(bad, seed).load(), /无法读取浏览器保存的数据/);
+  });
   it('favorite toggle adds once then removes', () => { const a = D.toggleFavorite([], 'one'); assert.deepEqual(a, ['one']); assert.deepEqual(D.toggleFavorite(a, 'one'), []); });
   it('reopening preserves content and publication time for both types', () => {
     for (const type of ['lost', 'found']) {
@@ -55,6 +96,24 @@ describe('数据校验、筛选与状态管理', () => {
     const list = [item(), item({ id: 'two', locationGroup: '食堂', category: '电子设备' }), item({ id: 'three', locationGroup: '图书馆' }), item({ id: 'four', locationGroup: '食堂', category: '其他' })];
     assert.deepEqual(D.queryItems(list, { locations: ['教学楼', '食堂'], categories: ['生活用品', '电子设备'] }).map(x => x.id), ['one', 'two']);
     assert.equal(D.queryItems(list, { locations: [], categories: [] }).length, 4);
+  });
+  it('paginate returns one page plus the counters used by the UI', () => {
+    const list = Array.from({ length: 30 }, (_, i) => i);
+    assert.deepEqual(D.paginate(list, 12), { shown: list.slice(0, 12), total: 30, shownCount: 12, remaining: 18 });
+    assert.deepEqual(D.paginate(list, 24).remaining, 6);
+    assert.deepEqual(D.paginate(list, 30).remaining, 0);
+  });
+  it('paginate falls back to the whole list when the limit is missing or invalid', () => {
+    const list = [1, 2, 3];
+    for (const bad of [undefined, null, 0, -5, NaN, Infinity, 'abc']) {
+      const page = D.paginate(list, bad);
+      assert.equal(page.shownCount, 3, `limit=${String(bad)} 应展示全部`);
+      assert.equal(page.remaining, 0);
+    }
+  });
+  it('paginate handles an empty list and floors a fractional limit', () => {
+    assert.deepEqual(D.paginate([], 12), { shown: [], total: 0, shownCount: 0, remaining: 0 });
+    assert.equal(D.paginate([1, 2, 3, 4, 5], 2.9).shownCount, 2);
   });
   it('event date range is inclusive, independent of publication, and excludes unknown dates', () => {
     const list = [item({ id: 'first', occurredAt: '2026-10-01', timePrecision: 'date' }), item({ id: 'last', occurredAt: '2026-10-06T23:59' }), item({ id: 'old', occurredAt: '2026-09-30T12:00' }), item({ id: 'unknown', occurredAt: '', timePrecision: 'unknown' })];

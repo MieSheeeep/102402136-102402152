@@ -10,6 +10,13 @@
   const locations = ['教学楼', '食堂', '图书馆', '宿舍区', '运动场', '其他'];
   const key = 'campus-lost-found-v1';
   const limits = { name: 60, locationDetail: 100, contact: 120, description: 1000 };
+  // 静态模式（直接打开 index.html）没有后端，图片压缩后以 data URL 存在 localStorage 里。
+  // 单张上限 20 万字符（约 150 KB），一张 720px 的 WebP 大致 4~8 万字符，够存十几张。
+  const imageLimit = 200000;
+  // 只接受三种来源：默认占位图、后端上传的 WebP、以及本地压缩后的 WebP/JPEG/PNG。
+  // 刻意不支持 data:image/svg+xml —— SVG 可以内嵌脚本，没必要为一个图片字段开这个口子。
+  const imagePattern = /^(?:assets\/default-item\.svg|\/uploads\/[a-f0-9-]{36}\.webp|data:image\/(?:webp|jpeg|png);base64,[A-Za-z0-9+/]+=*)$/;
+  const validImage = value => typeof value === 'string' && value.length <= imageLimit && imagePattern.test(value);
   const text = value => typeof value === 'string' ? value.trim() : '';
 
   function validTime(value) {
@@ -23,7 +30,7 @@
     return /^\d{4}-\d{2}-\d{2}$/.test(value || '') && validTime(value + 'T12:00');
   }
   function normalize(input) {
-    const value = Object.fromEntries(['type', 'name', 'category', 'locationGroup', 'locationDetail', 'occurredAt', 'contact', 'description'].map(field => [field, text(input[field])]));
+    const value = Object.fromEntries(['type', 'name', 'category', 'locationGroup', 'locationDetail', 'occurredAt', 'contact', 'description', 'image'].map(field => [field, text(input[field])]));
     value.locationGroups = Array.isArray(input.locationGroups) ? [...new Set(input.locationGroups.map(text))] : input.locationGroups === undefined && value.locationGroup ? [value.locationGroup] : [];
     value.locationGroup = value.locationGroups[0] || '';
     value.timePrecision = input.timePrecision || (validDate(value.occurredAt) ? 'date' : 'datetime');
@@ -41,6 +48,7 @@
     if (!value.locationDetail) errors.locationDetail = value.type === 'lost' ? '请填写最有可能的地点' : '请填写具体拾取地点';
     if (!['datetime', 'date', 'unknown'].includes(value.timePrecision) || (value.timePrecision === 'datetime' && !validTime(value.occurredAt)) || (value.timePrecision === 'date' && !validDate(value.occurredAt))) errors.occurredAt = '请填写有效的日期或时间';
     if (!value.contact) errors.contact = '请填写方便联系的微信、QQ或电话';
+    if (value.image && !validImage(value.image)) errors.image = value.image.length > imageLimit ? '图片过大，请换一张更小的图片' : '图片格式不受支持，请重新选择';
     for (const [field, limit] of Object.entries(limits)) {
       if (value[field].length > limit) errors[field] = `请控制在 ${limit} 字以内`;
     }
@@ -60,7 +68,8 @@
     assertValid(input);
     if (!ownerId) throw new Error('发布者信息缺失');
     const id = typeof globalThis.crypto?.randomUUID === 'function' ? globalThis.crypto.randomUUID() : `post-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    return { ...normalize(input), id, ownerId, image: 'assets/default-item.svg', status: 'open', createdAt: new Date(now).toISOString(), updatedAt: new Date(now).toISOString() };
+    const value = normalize(input);
+    return { ...value, id, ownerId, image: validImage(value.image) ? value.image : 'assets/default-item.svg', status: 'open', createdAt: new Date(now).toISOString(), updatedAt: new Date(now).toISOString() };
   }
 
   function owned(items, id, ownerId) {
@@ -143,6 +152,15 @@
     ).slice().sort((a, b) => (filters.sort === 'oldest' ? 1 : -1) * (Date.parse(a.createdAt) - Date.parse(b.createdAt)));
   }
 
+  // 首页信息流分页：返回「本页展示的条目」以及用于提示的计数。
+  // 单独抽成纯函数，既方便单元测试，也让 views.js 不必自己算边界。
+  function paginate(list, limit) {
+    const total = list.length;
+    const size = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : total;
+    const shown = list.slice(0, size);
+    return { shown, total, shownCount: shown.length, remaining: Math.max(0, total - shown.length) };
+  }
+
   function statusLabel(item) {
     if (item.status === 'completed') return item.type === 'lost' ? '已找到' : '已归还';
     return item.type === 'lost' ? '寻找中' : '待认领';
@@ -164,7 +182,7 @@
     if (state.preferences !== undefined && (!state.preferences || !['newest', 'oldest'].includes(state.preferences.sort) || typeof state.preferences.saveSearchHistory !== 'boolean')) return false;
     const ids = new Set();
     for (const item of state.items) {
-      if (!item || typeof item.id !== 'string' || !item.id || ids.has(item.id) || typeof item.ownerId !== 'string' || !item.ownerId || Object.keys(validateItem(item)).length || !['open', 'completed'].includes(item.status) || !Number.isFinite(Date.parse(item.createdAt)) || !Number.isFinite(Date.parse(item.updatedAt))) return false;
+      if (!item || typeof item.id !== 'string' || !item.id || ids.has(item.id) || typeof item.ownerId !== 'string' || !item.ownerId || (item.image ? !validImage(item.image) : false) || Object.keys(validateItem(item)).length || !['open', 'completed'].includes(item.status) || !Number.isFinite(Date.parse(item.createdAt)) || !Number.isFinite(Date.parse(item.updatedAt))) return false;
       ids.add(item.id);
     }
     return state.favorites.every(id => typeof id === 'string') && new Set(state.favorites).size === state.favorites.length;
@@ -209,5 +227,5 @@
     };
   }
 
-  return { campuses, categories, locations, key, validateItem, createItem, validateFilters, queryItems, updateItem, completeItem, reopenItem, deleteItem, statusLabel, toggleFavorite, rememberSearch, createStore };
+  return { campuses, categories, locations, key, splitKeywords, validateItem, createItem, validateFilters, queryItems, updateItem, completeItem, reopenItem, deleteItem, statusLabel, toggleFavorite, rememberSearch, createStore, paginate, validImage, imageLimit };
 });

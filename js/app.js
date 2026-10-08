@@ -25,6 +25,12 @@
   let filterDraft = null;
   let filterError = '';
   let filterMotionSerial = 0;
+  // 首页信息流分页：默认每页 12 条，「加载更多」每次追加一页。
+  // 筛选条件一旦变化就自动回到第一页，避免出现「换了条件还停在第三页」的困惑。
+  const HOME_PAGE_SIZE = 12;
+  let homeLimit = HOME_PAGE_SIZE;
+  let homeFilterKey = '';
+  const filterSignature = f => JSON.stringify([f.keyword, f.type, f.locations, f.categories, f.timeRange, f.dateStart, f.dateEnd, f.sort, f.favoritesOnly]);
   let myStatus = 'all';
   let myType = 'all';
   let draft = { type: 'lost', name: '', category: '', locationGroup: '', locationDetail: '', occurredAt: '', contact: '', description: '' };
@@ -90,6 +96,8 @@
   }
 
   function render() {
+    const signature = filterSignature(filters);
+    if (signature !== homeFilterKey) { homeFilterKey = signature; homeLimit = HOME_PAGE_SIZE; }
     if (!backendReady) { main.innerHTML = `<section class="empty-state"><h2>${warningText ? '暂时无法连接服务' : '正在载入'}</h2>${warningText ? '<button class="button button-primary" data-action="retry-server">重新连接</button>' : ''}</section>`; return; }
     const oldPanel = document.querySelector('#advanced-filters');
     const wasOpen = oldPanel && !oldPanel.hidden;
@@ -127,10 +135,10 @@
       case 'admin': main.innerHTML = state.user?.role === 'admin' ? V.adminPanel(state) : '<section class="empty-state"><h2>需要管理员权限</h2></section>'; break;
       case 'settings': main.innerHTML = V.settings(state); break;
       case 'my': main.innerHTML = V.my(state, myType, ownerId, myStatus); break;
-      case 'detail': main.innerHTML = V.detail(item, state.favorites, ownerId); break;
+      case 'detail': main.innerHTML = V.detail(item, state.favorites, ownerId, filters.keyword); break;
       case 'edit':
         if (!item || item.ownerId !== ownerId) {
-          main.innerHTML = V.detail(item, state.favorites, ownerId);
+          main.innerHTML = V.detail(item, state.favorites, ownerId, filters.keyword);
           toast(item ? '只能编辑本人发布的信息' : '这条信息已不存在', 'error');
         } else {
           if (editingId !== item.id || changed) { draft = { ...item, remote: backend }; pendingItemFile = null; errors = {}; editingId = item.id; }
@@ -142,7 +150,7 @@
         main.innerHTML = V.form({ ...draft, contact: draft.contact || state.user?.contact || '', remote: backend }, errors);
         break;
       case 'success': main.innerHTML = item ? V.success(item) : V.detail(null, state.favorites, ownerId); break;
-      default: main.innerHTML = V.home(state, filters, { advancedOpen, filterDraft, filterError });
+      default: main.innerHTML = V.home(state, filters, { advancedOpen, filterDraft, filterError, limit: homeLimit });
     }
     if (backend && !state.user && ['my', 'settings', 'publish', 'edit'].includes(currentRoute.page)) {
       returnAfterLogin = `${currentRoute.page}${currentRoute.id ? '/' + encodeURIComponent(currentRoute.id) : ''}`;
@@ -565,6 +573,15 @@
         case 'reset-pending': filterDraft = defaults(); filterError = ''; syncFilterDraft(); document.querySelector('[data-action="reset-pending"]')?.focus({ preventScroll: true }); break;
         case 'time-range': filterDraft.timeRange = trigger.dataset.value; filterError = ''; syncFilterDraft(); document.querySelector(`[data-action="time-range"][data-value="${trigger.dataset.value}"]`)?.focus({ preventScroll: true }); break;
         case 'my-status': myStatus = myStatus === 'completed' ? 'all' : 'completed'; render(); document.querySelector('[data-action="my-status"]')?.focus(); break;
+        case 'load-more': {
+          // 记忆当前滚动位置：整页重渲染后 main 的 scrollTop 会被重置
+          const keep = main.scrollTop;
+          homeLimit += HOME_PAGE_SIZE;
+          render();
+          main.scrollTop = keep;
+          document.querySelector('[data-action="load-more"]')?.focus({ preventScroll: true });
+          break;
+        }
         case 'clear-filters': filters = defaults(); advancedOpen = false; filterDraft = null; filterError = ''; navigate('home'); break;
         case 'favorites-filter': filters.favoritesOnly = !filters.favoritesOnly; render(); document.querySelector('[data-action="favorites-filter"]')?.focus(); break;
         case 'favorite':
@@ -640,11 +657,41 @@
       event.preventDefault(); moveNotice(noticeIndex() + (event.key === 'ArrowRight' ? 1 : -1));
     }
   });
-  function syncItemImage() {
+  function syncItemImage(label) {
     const editor = document.querySelector('#item-image-editor'); if (!editor || !pendingItemFile) return;
     editor.classList.add('has-image'); editor.querySelector('#item-preview').src = previewUrl;
     editor.querySelector('[data-action="remove-image"]').hidden = false;
-    editor.querySelector('#item-image-filename').textContent = pendingItemFile.name;
+    editor.querySelector('#item-image-filename').textContent = label || pendingItemFile.name;
+  }
+  // 静态模式（直接打开 index.html）没有后端可上传，图片在这里压缩成 data URL，
+  // 随发布信息一起写进 localStorage。长边限 720px、WebP 质量 0.72，
+  // 一张图约 4~8 万字符，既能看清物品特征，也不会很快撑满浏览器存储配额。
+  // 用 canvas 而不是 FileReader 直接塞原图，是因为手机拍的照片动辄 3~5 MB，
+  // 原样转 base64 会立刻超过 localStorage 约 5 MB 的总额度。
+  function compressItemImage(file, maxSide = 720, quality = 0.72) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('图片读取失败，请重试'));
+      reader.onload = () => {
+        const image = new Image();
+        image.onerror = () => reject(new Error('这张图片无法解析，请换一张'));
+        image.onload = () => {
+          const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+          const context = canvas.getContext('2d');
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          const url = canvas.toDataURL('image/webp', quality);
+          // toDataURL 在不支持该格式时会静默退回 image/png，这里显式拦下来，
+          // 否则 PNG 体积大得多，用户会在保存时才遇到存储不足。
+          if (!/^data:image\/webp;base64,/.test(url)) return reject(new Error('当前浏览器不支持 WebP 压缩，请改用 Chrome 打开'));
+          resolve(url);
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
   function selectItemImage(file) {
     if (!file) return;
@@ -653,6 +700,15 @@
     }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     previewUrl = URL.createObjectURL(file); pendingItemFile = file; syncItemImage();
+    if (backend) return;                       // 完整模式仍然交给后台上传
+    const chosen = file;
+    syncItemImage(`${file.name} · 正在压缩…`);
+    compressItemImage(file).then(dataUrl => {
+      // 压缩期间用户又换了一张图，这次结果就作废，避免旧图覆盖新图
+      if (pendingItemFile !== chosen) return;
+      draft.image = dataUrl;
+      syncItemImage(`${file.name} · 已压缩到 ${Math.round(dataUrl.length / 1024)} KB`);
+    }).catch(error => { pendingItemFile = null; previewUrl = ''; render(); toast(error.message, 'error'); });
   }
   main.addEventListener('dragover', event => {
     const zone = event.target.closest('.item-image-zone'); if (!zone) return;
