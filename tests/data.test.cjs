@@ -35,6 +35,47 @@ describe('数据校验、筛选与状态管理', () => {
     assert.equal(D.queryItems(list, { keyword: '   ' }, []).length, 2);
     assert.equal(D.queryItems(list, { keyword: '\u3000' }, []).length, 2);
   });
+  it('accepts the three supported image sources and rejects everything else', () => {
+    const uuid = 'a'.repeat(8) + '-' + 'b'.repeat(4) + '-' + 'c'.repeat(4) + '-' + 'd'.repeat(4) + '-' + 'e'.repeat(12);
+    for (const good of ['assets/default-item.svg', `/uploads/${uuid}.webp`,
+                        'data:image/webp;base64,UklGRg==', 'data:image/jpeg;base64,/9j/4A==', 'data:image/png;base64,iVBORw0KGgo=']) {
+      assert.equal(D.validImage(good), true, `应接受 ${good.slice(0, 30)}`);
+    }
+    for (const bad of ['', '   ', null, undefined, 123, {}, 'assets/other.png',
+                       'http://example.com/x.webp', '/uploads/not-a-uuid.webp',
+                       'data:image/svg+xml;base64,PHN2Zz4=',   // SVG 可内嵌脚本，刻意不放行
+                       'data:text/html;base64,PHNjcmlwdD4=',
+                       'data:image/webp;base64,!!!',             // 非 base64 字符
+                       'javascript:alert(1)']) {
+      assert.equal(D.validImage(bad), false, `应拒绝 ${String(bad).slice(0, 30)}`);
+    }
+  });
+  it('rejects an image longer than the storage limit', () => {
+    const huge = 'data:image/webp;base64,' + 'A'.repeat(D.imageLimit);
+    assert.ok(huge.length > D.imageLimit);
+    assert.equal(D.validImage(huge), false);
+    assert.equal(D.validateItem({ ...input, image: huge }).image, '图片过大，请换一张更小的图片');
+  });
+  it('createItem keeps a valid local image and uses the default when none is given', () => {
+    const local = 'data:image/webp;base64,UklGRg==';
+    assert.equal(D.createItem({ ...input, image: local }, 'me', now).image, local);
+    assert.equal(D.createItem({ ...input, image: '' }, 'me', now).image, 'assets/default-item.svg');
+    assert.equal(D.createItem(input, 'me', now).image, 'assets/default-item.svg');
+    // 非法图片应当在校验阶段就被拦下，而不是静默回退成默认图
+    assert.throws(() => D.createItem({ ...input, image: 'data:image/svg+xml;base64,PHN2Zz4=' }, 'me', now), /信息填写不完整/);
+  });
+  it('a stored state without an image field is still readable (历史数据兼容)', () => {
+    // 老版本写入的数据可能没有 image 字段，不能因为加了图片校验就把人锁在门外
+    const legacy = memory(JSON.stringify({ ...seed(), items: [{ ...item(), image: undefined }] }));
+    assert.equal(D.createStore(legacy, seed).load().items.length, 1);
+  });
+  it('a stored state whose item carries an unsupported image is rejected', () => {
+    const good = { ...seed(), items: [item({ image: 'data:image/webp;base64,UklGRg==' })] };
+    const storage = memory(JSON.stringify(good));
+    assert.equal(D.createStore(storage, seed).load().items[0].image, 'data:image/webp;base64,UklGRg==');
+    const bad = memory(JSON.stringify({ ...seed(), items: [item({ image: 'data:image/svg+xml;base64,PHN2Zz4=' })] }));
+    assert.throws(() => D.createStore(bad, seed).load(), /无法读取浏览器保存的数据/);
+  });
   it('favorite toggle adds once then removes', () => { const a = D.toggleFavorite([], 'one'); assert.deepEqual(a, ['one']); assert.deepEqual(D.toggleFavorite(a, 'one'), []); });
   it('reopening preserves content and publication time for both types', () => {
     for (const type of ['lost', 'found']) {

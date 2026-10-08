@@ -657,11 +657,41 @@
       event.preventDefault(); moveNotice(noticeIndex() + (event.key === 'ArrowRight' ? 1 : -1));
     }
   });
-  function syncItemImage() {
+  function syncItemImage(label) {
     const editor = document.querySelector('#item-image-editor'); if (!editor || !pendingItemFile) return;
     editor.classList.add('has-image'); editor.querySelector('#item-preview').src = previewUrl;
     editor.querySelector('[data-action="remove-image"]').hidden = false;
-    editor.querySelector('#item-image-filename').textContent = pendingItemFile.name;
+    editor.querySelector('#item-image-filename').textContent = label || pendingItemFile.name;
+  }
+  // 静态模式（直接打开 index.html）没有后端可上传，图片在这里压缩成 data URL，
+  // 随发布信息一起写进 localStorage。长边限 720px、WebP 质量 0.72，
+  // 一张图约 4~8 万字符，既能看清物品特征，也不会很快撑满浏览器存储配额。
+  // 用 canvas 而不是 FileReader 直接塞原图，是因为手机拍的照片动辄 3~5 MB，
+  // 原样转 base64 会立刻超过 localStorage 约 5 MB 的总额度。
+  function compressItemImage(file, maxSide = 720, quality = 0.72) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('图片读取失败，请重试'));
+      reader.onload = () => {
+        const image = new Image();
+        image.onerror = () => reject(new Error('这张图片无法解析，请换一张'));
+        image.onload = () => {
+          const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+          const context = canvas.getContext('2d');
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          const url = canvas.toDataURL('image/webp', quality);
+          // toDataURL 在不支持该格式时会静默退回 image/png，这里显式拦下来，
+          // 否则 PNG 体积大得多，用户会在保存时才遇到存储不足。
+          if (!/^data:image\/webp;base64,/.test(url)) return reject(new Error('当前浏览器不支持 WebP 压缩，请改用 Chrome 打开'));
+          resolve(url);
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
   function selectItemImage(file) {
     if (!file) return;
@@ -670,6 +700,15 @@
     }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     previewUrl = URL.createObjectURL(file); pendingItemFile = file; syncItemImage();
+    if (backend) return;                       // 完整模式仍然交给后台上传
+    const chosen = file;
+    syncItemImage(`${file.name} · 正在压缩…`);
+    compressItemImage(file).then(dataUrl => {
+      // 压缩期间用户又换了一张图，这次结果就作废，避免旧图覆盖新图
+      if (pendingItemFile !== chosen) return;
+      draft.image = dataUrl;
+      syncItemImage(`${file.name} · 已压缩到 ${Math.round(dataUrl.length / 1024)} KB`);
+    }).catch(error => { pendingItemFile = null; previewUrl = ''; render(); toast(error.message, 'error'); });
   }
   main.addEventListener('dragover', event => {
     const zone = event.target.closest('.item-image-zone'); if (!zone) return;

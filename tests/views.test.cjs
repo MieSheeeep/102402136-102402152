@@ -127,3 +127,22 @@ describe('首页信息流分页', () => {
     assert.ok(!noMatch.includes('广场上还没有信息'));
   });
 });
+
+describe('物品图片地址', () => {
+  it('passes the three supported sources through and falls back otherwise', () => {
+    const local = 'data:image/webp;base64,UklGRg==';
+    assert.equal(V.imageUrl(local), local);
+    assert.equal(V.imageUrl('assets/default-item.svg'), 'assets/default-item.svg');
+    assert.equal(V.imageUrl('data:image/svg+xml;base64,PHN2Zz4='), 'assets/default-item.svg');
+    assert.equal(V.imageUrl('javascript:alert(1)'), 'assets/default-item.svg');
+    assert.equal(V.imageUrl(undefined), 'assets/default-item.svg');
+  });
+
+  it('renders a locally stored image inside the card', () => {
+    const state = mkState(1);
+    state.items[0].image = 'data:image/webp;base64,UklGRg==';
+    const html = V.home(state, F, {});
+    assert.ok(html.includes('src="data:image/webp;base64,UklGRg=="'));
+    assert.ok(!html.includes('src="assets/default-item.svg"'));
+  });
+});
