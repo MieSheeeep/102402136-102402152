@@ -73,11 +73,12 @@
       ${manage ? `<div class="card-actions"><button data-action="edit" data-id="${esc(item.id)}">${icon('edit')}编辑信息</button>${item.status === 'open' ? `<button data-action="complete" data-id="${esc(item.id)}">${icon('check')}${item.type === 'lost' ? '标为已找到' : '标为已归还'}</button>` : `<button data-action="reopen" data-id="${esc(item.id)}">${icon('reset')}${item.type === 'lost' ? '取消已找到' : '取消已归还'}</button>`}<button class="delete-button" data-action="delete" data-id="${esc(item.id)}">删除</button></div>` : ''}
     </article>`;
   }
-  function empty(title, hint, clear = true) {
-    return `<div class="empty-state"><span class="empty-icon">${icon('search')}</span><h3>${title}</h3><p>${hint}</p><div>${clear ? '<button class="button button-secondary" data-action="clear-filters">清除筛选</button>' : ''}<a class="button button-primary" href="#publish">${icon('plus')}发布一条信息</a></div></div>`;
+  function empty(title, hint, clear = true, symbol = 'search') {
+    return `<div class="empty-state"><span class="empty-icon">${icon(symbol)}</span><h3>${title}</h3><p>${hint}</p><div>${clear ? '<button class="button button-secondary" data-action="clear-filters">清除筛选</button>' : ''}<a class="button button-primary" href="#publish">${icon('plus')}发布一条信息</a></div></div>`;
   }
   function home(state, filters, ui = {}) {
     const list = D.queryItems(state.items, filters, state.favorites);
+    const page = D.paginate(list, ui.limit);
     const words = D.splitKeywords(filters.keyword);
     const searching = Boolean(filters.keyword || filters.favoritesOnly || filters.locations?.length || filters.categories?.length || (filters.timeRange && filters.timeRange !== 'all') || (filters.type && filters.type !== 'all'));
     const pending = ui.filterDraft || filters;
@@ -95,8 +96,15 @@
       <div class="compact-filters" role="group" aria-label="快捷筛选"><button class="quick-filter quick-lost ${filters.type === 'lost' ? 'active' : ''}" data-action="type" data-value="lost" aria-pressed="${filters.type === 'lost'}">寻物</button><button class="quick-filter quick-found ${filters.type === 'found' ? 'active' : ''}" data-action="type" data-value="found" aria-pressed="${filters.type === 'found'}">招领</button><button class="quick-filter quick-saved ${filters.favoritesOnly ? 'active' : ''}" data-action="favorites-filter" aria-pressed="${filters.favoritesOnly}">${icon('heart')}收藏</button><button class="more-filter-button ${ui.advancedOpen || extraCount ? 'active' : ''}" data-action="advanced-filters" aria-label="更多筛选${extraCount ? `，${extraCount}项已启用` : ''}" aria-expanded="${Boolean(ui.advancedOpen)}" aria-controls="advanced-filters">${icon('filter')}${extraCount ? `<span class="filter-count">${extraCount}</span>` : ''}</button></div>
       <form id="advanced-filters" class="advanced-filters multi-filter-panel" ${ui.advancedOpen ? '' : 'hidden'} novalidate><div class="filter-scroll" id="filter-scroll"><fieldset><legend>地点区域 <small>可多选，不选则不限</small></legend><div class="filter-chips">${D.locations.map(value => `<label class="filter-chip"><input type="checkbox" data-multi="locations" value="${esc(value)}" ${(pending.locations || []).includes(value) ? 'checked' : ''}><span>${icon('check')}${esc(value)}</span></label>`).join('')}</div></fieldset><fieldset><legend>物品分类 <small>可多选，不选则不限</small></legend><div class="filter-chips">${D.categories.map(value => `<label class="filter-chip"><input type="checkbox" data-multi="categories" value="${esc(value)}" ${(pending.categories || []).includes(value) ? 'checked' : ''}><span>${icon('check')}${esc(value)}</span></label>`).join('')}</div></fieldset><fieldset><legend>丢失 / 拾取时间</legend><div class="range-buttons">${[['all','不限'],['today','今天'],['3days','近3天'],['7days','近7天'],['custom','自定义']].map(([value,label]) => `<button type="button" data-action="time-range" data-value="${value}" aria-pressed="${(pending.timeRange || 'all') === value}" class="${(pending.timeRange || 'all') === value ? 'active' : ''}">${label}</button>`).join('')}</div><div class="custom-dates" ${pending.timeRange === 'custom' ? '' : 'hidden'}><label>开始日期<input type="date" data-pending="dateStart" min="2000-01-01" max="2100-12-31" value="${esc(pending.dateStart || '')}"></label><span>至</span><label>结束日期<input type="date" data-pending="dateEnd" min="2000-01-01" max="2100-12-31" value="${esc(pending.dateEnd || '')}"></label></div></fieldset><label class="filter-sort"><span>发布时间排序</span><select data-pending="sort"><option value="newest" ${pending.sort !== 'oldest' ? 'selected' : ''}>最新发布</option><option value="oldest" ${pending.sort === 'oldest' ? 'selected' : ''}>最早发布</option></select></label><p id="filter-error" class="field-error" role="alert" ${ui.filterError ? '' : 'hidden'}>${esc(ui.filterError || '')}</p></div><div class="filter-panel-actions"><button type="button" class="text-button" data-action="reset-pending">重置</button><button type="submit" class="button button-primary">应用筛选</button></div></form>
 
-      <div class="results-heading"><p>${filters.keyword ? `“${esc(filters.keyword)}” · ` : ''}共 <strong>${list.length}</strong> 条信息</p>${searching ? '<button class="text-button" data-action="clear-filters">重置条件</button>' : ''}</div>
-      ${list.length ? `<div class="card-grid">${list.map(item => card(item, state.favorites, false, true, words)).join('')}</div>` : empty('暂时没有匹配的信息', '试试其他关键词，或清除筛选条件。')}
+      <div class="results-heading"><p aria-live="polite">${filters.keyword ? `“${esc(filters.keyword)}” · ` : ''}共 <strong>${page.total}</strong> 条信息${page.total > page.shownCount ? `，已显示 <strong>${page.shownCount}</strong> 条` : ''}</p>${searching ? '<button class="text-button" data-action="clear-filters">重置条件</button>' : ''}</div>
+      ${page.total
+        ? `<div class="card-grid">${page.shown.map(item => card(item, state.favorites, false, true, words)).join('')}</div>
+      ${page.remaining
+        ? `<div class="load-more"><button class="button button-secondary" data-action="load-more">${icon('plus')}加载更多（还有 ${page.remaining} 条）</button><p>已显示 ${page.shownCount} / ${page.total} 条</p></div>`
+        : `<p class="list-end">已经到底啦，共 ${page.total} 条信息</p>`}`
+        : (state.items.length
+            ? empty('没有匹配的信息', '试试其他关键词，或放宽筛选条件。搜索支持物品名称、描述和地点。')
+            : empty('广场上还没有信息', '第一条线索就由你来发布吧，让丢失的物品早点回家。', false, 'leaf'))}
       </section>`;
   }
   function detail(item, favorites, ownerId, keyword = '') {

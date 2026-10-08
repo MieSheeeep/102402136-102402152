@@ -143,6 +143,15 @@
     ).slice().sort((a, b) => (filters.sort === 'oldest' ? 1 : -1) * (Date.parse(a.createdAt) - Date.parse(b.createdAt)));
   }
 
+  // 首页信息流分页：返回「本页展示的条目」以及用于提示的计数。
+  // 单独抽成纯函数，既方便单元测试，也让 views.js 不必自己算边界。
+  function paginate(list, limit) {
+    const total = list.length;
+    const size = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : total;
+    const shown = list.slice(0, size);
+    return { shown, total, shownCount: shown.length, remaining: Math.max(0, total - shown.length) };
+  }
+
   function statusLabel(item) {
     if (item.status === 'completed') return item.type === 'lost' ? '已找到' : '已归还';
     return item.type === 'lost' ? '寻找中' : '待认领';
@@ -209,5 +218,5 @@
     };
   }
 
-  return { campuses, categories, locations, key, splitKeywords, validateItem, createItem, validateFilters, queryItems, updateItem, completeItem, reopenItem, deleteItem, statusLabel, toggleFavorite, rememberSearch, createStore };
+  return { campuses, categories, locations, key, splitKeywords, validateItem, createItem, validateFilters, queryItems, updateItem, completeItem, reopenItem, deleteItem, statusLabel, toggleFavorite, rememberSearch, createStore, paginate };
 });

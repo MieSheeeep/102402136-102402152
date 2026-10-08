@@ -25,6 +25,12 @@
   let filterDraft = null;
   let filterError = '';
   let filterMotionSerial = 0;
+  // 首页信息流分页：默认每页 12 条，「加载更多」每次追加一页。
+  // 筛选条件一旦变化就自动回到第一页，避免出现「换了条件还停在第三页」的困惑。
+  const HOME_PAGE_SIZE = 12;
+  let homeLimit = HOME_PAGE_SIZE;
+  let homeFilterKey = '';
+  const filterSignature = f => JSON.stringify([f.keyword, f.type, f.locations, f.categories, f.timeRange, f.dateStart, f.dateEnd, f.sort, f.favoritesOnly]);
   let myStatus = 'all';
   let myType = 'all';
   let draft = { type: 'lost', name: '', category: '', locationGroup: '', locationDetail: '', occurredAt: '', contact: '', description: '' };
@@ -90,6 +96,8 @@
   }
 
   function render() {
+    const signature = filterSignature(filters);
+    if (signature !== homeFilterKey) { homeFilterKey = signature; homeLimit = HOME_PAGE_SIZE; }
     if (!backendReady) { main.innerHTML = `<section class="empty-state"><h2>${warningText ? '暂时无法连接服务' : '正在载入'}</h2>${warningText ? '<button class="button button-primary" data-action="retry-server">重新连接</button>' : ''}</section>`; return; }
     const oldPanel = document.querySelector('#advanced-filters');
     const wasOpen = oldPanel && !oldPanel.hidden;
@@ -142,7 +150,7 @@
         main.innerHTML = V.form({ ...draft, contact: draft.contact || state.user?.contact || '', remote: backend }, errors);
         break;
       case 'success': main.innerHTML = item ? V.success(item) : V.detail(null, state.favorites, ownerId); break;
-      default: main.innerHTML = V.home(state, filters, { advancedOpen, filterDraft, filterError });
+      default: main.innerHTML = V.home(state, filters, { advancedOpen, filterDraft, filterError, limit: homeLimit });
     }
     if (backend && !state.user && ['my', 'settings', 'publish', 'edit'].includes(currentRoute.page)) {
       returnAfterLogin = `${currentRoute.page}${currentRoute.id ? '/' + encodeURIComponent(currentRoute.id) : ''}`;
@@ -565,6 +573,15 @@
         case 'reset-pending': filterDraft = defaults(); filterError = ''; syncFilterDraft(); document.querySelector('[data-action="reset-pending"]')?.focus({ preventScroll: true }); break;
         case 'time-range': filterDraft.timeRange = trigger.dataset.value; filterError = ''; syncFilterDraft(); document.querySelector(`[data-action="time-range"][data-value="${trigger.dataset.value}"]`)?.focus({ preventScroll: true }); break;
         case 'my-status': myStatus = myStatus === 'completed' ? 'all' : 'completed'; render(); document.querySelector('[data-action="my-status"]')?.focus(); break;
+        case 'load-more': {
+          // 记忆当前滚动位置：整页重渲染后 main 的 scrollTop 会被重置
+          const keep = main.scrollTop;
+          homeLimit += HOME_PAGE_SIZE;
+          render();
+          main.scrollTop = keep;
+          document.querySelector('[data-action="load-more"]')?.focus({ preventScroll: true });
+          break;
+        }
         case 'clear-filters': filters = defaults(); advancedOpen = false; filterDraft = null; filterError = ''; navigate('home'); break;
         case 'favorites-filter': filters.favoritesOnly = !filters.favoritesOnly; render(); document.querySelector('[data-action="favorites-filter"]')?.focus(); break;
         case 'favorite':

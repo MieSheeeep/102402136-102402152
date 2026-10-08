@@ -56,6 +56,24 @@ describe('数据校验、筛选与状态管理', () => {
     assert.deepEqual(D.queryItems(list, { locations: ['教学楼', '食堂'], categories: ['生活用品', '电子设备'] }).map(x => x.id), ['one', 'two']);
     assert.equal(D.queryItems(list, { locations: [], categories: [] }).length, 4);
   });
+  it('paginate returns one page plus the counters used by the UI', () => {
+    const list = Array.from({ length: 30 }, (_, i) => i);
+    assert.deepEqual(D.paginate(list, 12), { shown: list.slice(0, 12), total: 30, shownCount: 12, remaining: 18 });
+    assert.deepEqual(D.paginate(list, 24).remaining, 6);
+    assert.deepEqual(D.paginate(list, 30).remaining, 0);
+  });
+  it('paginate falls back to the whole list when the limit is missing or invalid', () => {
+    const list = [1, 2, 3];
+    for (const bad of [undefined, null, 0, -5, NaN, Infinity, 'abc']) {
+      const page = D.paginate(list, bad);
+      assert.equal(page.shownCount, 3, `limit=${String(bad)} 应展示全部`);
+      assert.equal(page.remaining, 0);
+    }
+  });
+  it('paginate handles an empty list and floors a fractional limit', () => {
+    assert.deepEqual(D.paginate([], 12), { shown: [], total: 0, shownCount: 0, remaining: 0 });
+    assert.equal(D.paginate([1, 2, 3, 4, 5], 2.9).shownCount, 2);
+  });
   it('event date range is inclusive, independent of publication, and excludes unknown dates', () => {
     const list = [item({ id: 'first', occurredAt: '2026-10-01', timePrecision: 'date' }), item({ id: 'last', occurredAt: '2026-10-06T23:59' }), item({ id: 'old', occurredAt: '2026-09-30T12:00' }), item({ id: 'unknown', occurredAt: '', timePrecision: 'unknown' })];
     assert.deepEqual(D.queryItems(list, { timeRange: 'custom', dateStart: '2026-10-01', dateEnd: '2026-10-06' }).map(x => x.id), ['first', 'last']);

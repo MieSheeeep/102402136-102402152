@@ -83,3 +83,47 @@ describe('搜索结果关键词高亮', () => {
     assert.equal(MARKS(V.highlight('黑色雨伞', words)), 2);
   });
 });
+
+// 构造首页渲染所需的最小 state
+const mkItem = (id, name) => ({
+  id, ownerId: 'u1', ownerName: '叶同学', type: 'lost', name, category: '生活用品',
+  locationGroups: ['教学楼'], locationGroup: '教学楼', locationDetail: '教学楼A区302',
+  occurredAt: '2026-10-06T09:20', timePrecision: 'datetime', contact: '微信：demo',
+  description: '银色金属环', image: 'assets/default-item.svg', status: 'open',
+  createdAt: '2026-10-07T10:00:00.000Z', updatedAt: '2026-10-07T10:00:00.000Z',
+});
+const mkState = count => ({
+  version: 1, favorites: [], recentSearches: [], notices: [],
+  items: Array.from({ length: count }, (_, i) => mkItem('id' + i, '物品' + i)),
+});
+const F = { keyword: '', type: 'all', locations: [], categories: [], timeRange: 'all' };
+const CARDS = html => (html.match(/<article class="item-card/g) || []).length;
+
+describe('首页信息流分页', () => {
+  it('renders only the requested page of cards', () => {
+    const html = V.home(mkState(30), F, { limit: 12 });
+    assert.equal(CARDS(html), 12);
+    assert.ok(html.includes('还有 18 条'));
+    assert.ok(html.includes('已显示 12 / 30 条'));
+  });
+
+  it('hides the load-more button once everything is shown', () => {
+    const html = V.home(mkState(8), F, { limit: 12 });
+    assert.equal(CARDS(html), 8);
+    assert.ok(!html.includes('data-action="load-more"'));
+    assert.ok(html.includes('已经到底啦，共 8 条信息'));
+  });
+
+  it('shows everything when no limit is given', () => {
+    assert.equal(CARDS(V.home(mkState(30), F, {})), 30);
+  });
+
+  it('tells "nothing published yet" apart from "nothing matched"', () => {
+    const empty = V.home(mkState(0), F, {});
+    assert.ok(empty.includes('广场上还没有信息'));
+    const noMatch = V.home(mkState(5), { ...F, keyword: '不存在的东西' }, {});
+    assert.ok(noMatch.includes('没有匹配的信息'));
+    assert.ok(noMatch.includes('搜索支持物品名称、描述和地点'));
+    assert.ok(!noMatch.includes('广场上还没有信息'));
+  });
+});
