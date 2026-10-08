@@ -127,10 +127,10 @@
       case 'admin': main.innerHTML = state.user?.role === 'admin' ? V.adminPanel(state) : '<section class="empty-state"><h2>需要管理员权限</h2></section>'; break;
       case 'settings': main.innerHTML = V.settings(state); break;
       case 'my': main.innerHTML = V.my(state, myType, ownerId, myStatus); break;
-      case 'detail': main.innerHTML = V.detail(item, state.favorites, ownerId); break;
+      case 'detail': main.innerHTML = V.detail(item, state.favorites, ownerId, filters.keyword); break;
       case 'edit':
         if (!item || item.ownerId !== ownerId) {
-          main.innerHTML = V.detail(item, state.favorites, ownerId);
+          main.innerHTML = V.detail(item, state.favorites, ownerId, filters.keyword);
           toast(item ? '只能编辑本人发布的信息' : '这条信息已不存在', 'error');
         } else {
           if (editingId !== item.id || changed) { draft = { ...item, remote: backend }; pendingItemFile = null; errors = {}; editingId = item.id; }

@@ -209,5 +209,5 @@
     };
   }
 
-  return { campuses, categories, locations, key, validateItem, createItem, validateFilters, queryItems, updateItem, completeItem, reopenItem, deleteItem, statusLabel, toggleFavorite, rememberSearch, createStore };
+  return { campuses, categories, locations, key, splitKeywords, validateItem, createItem, validateFilters, queryItems, updateItem, completeItem, reopenItem, deleteItem, statusLabel, toggleFavorite, rememberSearch, createStore };
 });

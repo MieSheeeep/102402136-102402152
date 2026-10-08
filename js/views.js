@@ -36,21 +36,38 @@
   const displayContact = item => item.contact === '示例联系方式：campus_demo（非真实联系账号）' ? '微信：campus_demo' : item.contact;
   const areas = item => Array.isArray(item.locationGroups) ? item.locationGroups : item.locationGroup ? [item.locationGroup] : [];
   const uncertain = item => item.type === 'lost' && areas(item).length > 1;
-  const locationSummary = item => uncertain(item) ? `<span class="uncertain-location"><span>${esc(areas(item).join(' · '))}<em>模糊范围</em></span><small>最可能：${esc(item.locationDetail)}</small></span>` : esc(item.locationDetail);
+  const locationSummary = (item, words = []) => uncertain(item) ? `<span class="uncertain-location"><span>${esc(areas(item).join(' · '))}<em>模糊范围</em></span><small>最可能：${highlight(item.locationDetail, words)}</small></span>` : highlight(item.locationDetail, words);
   const typeLabel = item => item.type === 'lost' ? '寻物' : '招领';
   const badges = item => `<span class="tag tag-${item.type}">${typeLabel(item)}</span><span class="tag tag-status ${item.status === 'completed' ? 'done' : ''}">${esc(D.statusLabel(item))}</span>`;
+  // 把命中的关键词包成 <mark>，用于搜索结果高亮。
+  // 【安全要点】必须先按匹配位置切分「原文」，再对每一段单独 esc()，
+  // 绝不能在 esc() 之后的结果上做替换 —— 那样会把 &amp; 这类实体从中间
+  // 切开，产生非法 HTML。全函数唯一不转义的，就是自己插入的 <mark> 标签。
+  function highlight(value, words) {
+    const raw = String(value ?? '');
+    if (!words || !words.length) return esc(raw);
+    const unique = [...new Set(words)].filter(Boolean).sort((a, b) => b.length - a.length);
+    if (!unique.length) return esc(raw);
+    const pattern = new RegExp(unique.map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gi');
+    let out = '', last = 0;
+    for (const match of raw.matchAll(pattern)) {
+      out += esc(raw.slice(last, match.index)) + `<mark class="keyword-mark">${esc(match[0])}</mark>`;
+      last = match.index + match[0].length;
+    }
+    return out + esc(raw.slice(last));
+  }
   const options = (list, current, placeholder) => `<option value="">${placeholder}</option>${list.map(value => `<option value="${esc(value)}" ${current === value ? 'selected' : ''}>${esc(value)}</option>`).join('')}`;
   function favoriteButton(item, favorites, detail = false) {
     const active = favorites.includes(item.id);
     return `<button class="${detail ? 'button button-secondary' : 'favorite-button'} ${active ? 'is-favorite' : ''}" data-action="favorite" data-id="${esc(item.id)}" aria-pressed="${active}" aria-label="${active ? '取消收藏' : '收藏'}${esc(item.name)}"><span class="favorite-mark">${icon('heart')}</span>${detail ? `<span class="favorite-label">${active ? '已收藏' : '收藏信息'}</span>` : ''}</button>`;
   }
-  function card(item, favorites, manage = false, compact = false) {
+  function card(item, favorites, manage = false, compact = false, words = []) {
     return `<article class="item-card item-${item.type} ${item.status === 'completed' ? 'completed-card' : ''} ${favorites.includes(item.id) ? 'has-favorite' : ''}">
       ${favoriteButton(item, favorites)}
       <a class="card-link" href="#detail/${encodeURIComponent(item.id)}">
         <div class="card-image"><img src="${imageUrl(item.image)}" alt="物品配图" width="480" height="360"></div>
-        <div class="card-info"><div class="card-tags">${badges(item)}</div><h3>${esc(item.name)}</h3><p class="card-description">${esc(item.description || '发布者暂未补充描述，点击查看详情。')}</p></div>
-        ${compact ? `<div class="card-meta card-meta-compact"><span>${icon('pin')}${locationSummary(item)}</span><span>${item.type === 'lost' ? '丢失' : '拾取'}：${eventTime(item)}</span></div>` : `<dl class="card-meta"><div><dt>${icon('pin')}${item.type === 'lost' ? '丢失地点' : '拾取地点'}</dt><dd>${locationSummary(item)}</dd></div><div><dt>${icon('clock')}${item.type === 'lost' ? '丢失时间' : '拾取时间'}</dt><dd>${eventTime(item)}</dd></div></dl>`}
+        <div class="card-info"><div class="card-tags">${badges(item)}</div><h3>${highlight(item.name, words)}</h3><p class="card-description">${item.description ? highlight(item.description, words) : '发布者暂未补充描述，点击查看详情。'}</p></div>
+        ${compact ? `<div class="card-meta card-meta-compact"><span>${icon('pin')}${locationSummary(item, words)}</span><span>${item.type === 'lost' ? '丢失' : '拾取'}：${eventTime(item)}</span></div>` : `<dl class="card-meta"><div><dt>${icon('pin')}${item.type === 'lost' ? '丢失地点' : '拾取地点'}</dt><dd>${locationSummary(item, words)}</dd></div><div><dt>${icon('clock')}${item.type === 'lost' ? '丢失时间' : '拾取时间'}</dt><dd>${eventTime(item)}</dd></div></dl>`}
       </a>
       ${manage ? `<div class="card-published"><span>发布于 <time datetime="${esc(item.createdAt)}">${fullTime(item.createdAt)}</time></span><span>修改于 <time datetime="${esc(item.updatedAt || item.createdAt)}">${fullTime(item.updatedAt || item.createdAt)}</time></span></div>` : ''}
       ${manage ? `<div class="card-actions"><button data-action="edit" data-id="${esc(item.id)}">${icon('edit')}编辑信息</button>${item.status === 'open' ? `<button data-action="complete" data-id="${esc(item.id)}">${icon('check')}${item.type === 'lost' ? '标为已找到' : '标为已归还'}</button>` : `<button data-action="reopen" data-id="${esc(item.id)}">${icon('reset')}${item.type === 'lost' ? '取消已找到' : '取消已归还'}</button>`}<button class="delete-button" data-action="delete" data-id="${esc(item.id)}">删除</button></div>` : ''}
@@ -61,6 +78,7 @@
   }
   function home(state, filters, ui = {}) {
     const list = D.queryItems(state.items, filters, state.favorites);
+    const words = D.splitKeywords(filters.keyword);
     const searching = Boolean(filters.keyword || filters.favoritesOnly || filters.locations?.length || filters.categories?.length || (filters.timeRange && filters.timeRange !== 'all') || (filters.type && filters.type !== 'all'));
     const pending = ui.filterDraft || filters;
     const history = state.recentSearches || [];
@@ -78,13 +96,14 @@
       <form id="advanced-filters" class="advanced-filters multi-filter-panel" ${ui.advancedOpen ? '' : 'hidden'} novalidate><div class="filter-scroll" id="filter-scroll"><fieldset><legend>地点区域 <small>可多选，不选则不限</small></legend><div class="filter-chips">${D.locations.map(value => `<label class="filter-chip"><input type="checkbox" data-multi="locations" value="${esc(value)}" ${(pending.locations || []).includes(value) ? 'checked' : ''}><span>${icon('check')}${esc(value)}</span></label>`).join('')}</div></fieldset><fieldset><legend>物品分类 <small>可多选，不选则不限</small></legend><div class="filter-chips">${D.categories.map(value => `<label class="filter-chip"><input type="checkbox" data-multi="categories" value="${esc(value)}" ${(pending.categories || []).includes(value) ? 'checked' : ''}><span>${icon('check')}${esc(value)}</span></label>`).join('')}</div></fieldset><fieldset><legend>丢失 / 拾取时间</legend><div class="range-buttons">${[['all','不限'],['today','今天'],['3days','近3天'],['7days','近7天'],['custom','自定义']].map(([value,label]) => `<button type="button" data-action="time-range" data-value="${value}" aria-pressed="${(pending.timeRange || 'all') === value}" class="${(pending.timeRange || 'all') === value ? 'active' : ''}">${label}</button>`).join('')}</div><div class="custom-dates" ${pending.timeRange === 'custom' ? '' : 'hidden'}><label>开始日期<input type="date" data-pending="dateStart" min="2000-01-01" max="2100-12-31" value="${esc(pending.dateStart || '')}"></label><span>至</span><label>结束日期<input type="date" data-pending="dateEnd" min="2000-01-01" max="2100-12-31" value="${esc(pending.dateEnd || '')}"></label></div></fieldset><label class="filter-sort"><span>发布时间排序</span><select data-pending="sort"><option value="newest" ${pending.sort !== 'oldest' ? 'selected' : ''}>最新发布</option><option value="oldest" ${pending.sort === 'oldest' ? 'selected' : ''}>最早发布</option></select></label><p id="filter-error" class="field-error" role="alert" ${ui.filterError ? '' : 'hidden'}>${esc(ui.filterError || '')}</p></div><div class="filter-panel-actions"><button type="button" class="text-button" data-action="reset-pending">重置</button><button type="submit" class="button button-primary">应用筛选</button></div></form>
 
       <div class="results-heading"><p>${filters.keyword ? `“${esc(filters.keyword)}” · ` : ''}共 <strong>${list.length}</strong> 条信息</p>${searching ? '<button class="text-button" data-action="clear-filters">重置条件</button>' : ''}</div>
-      ${list.length ? `<div class="card-grid">${list.map(item => card(item, state.favorites, false, true)).join('')}</div>` : empty('暂时没有匹配的信息', '试试其他关键词，或清除筛选条件。')}
+      ${list.length ? `<div class="card-grid">${list.map(item => card(item, state.favorites, false, true, words)).join('')}</div>` : empty('暂时没有匹配的信息', '试试其他关键词，或清除筛选条件。')}
       </section>`;
   }
-  function detail(item, favorites, ownerId) {
+  function detail(item, favorites, ownerId, keyword = '') {
+    const words = D.splitKeywords(keyword);
     if (!item) return `<section class="missing-page">${empty('这条信息已不存在', '可能已被发布者删除。返回广场看看其他线索。', false)}<a class="text-button" href="#home">返回寻物广场</a></section>`;
     const own = item.ownerId === ownerId;
-    return `<div class="page-back"><a href="#home">${icon('back')}返回寻物广场</a><span>信息详情</span></div><section class="detail-layout"><div class="detail-picture"><img src="${imageUrl(item.image)}" alt="物品配图"></div><div class="detail-copy"><div class="card-tags">${badges(item)}</div><h1 id="detail-heading">${esc(item.name)}</h1><a class="publisher-link" href="#user/${encodeURIComponent(item.ownerId)}">${avatar({ nickname: item.ownerName, avatar: item.ownerAvatar })}<span><small>发布者</small><strong>${esc(item.ownerName || '同学')}</strong></span>${icon('arrow')}</a><p class="detail-published">${esc(item.ownerName || (own ? '我' : '同学'))}发布 · ${fullTime(item.createdAt)}<span class="detail-updated">修改于 ${fullTime(item.updatedAt || item.createdAt)}</span></p><dl class="detail-fields"><div><dt>物品分类</dt><dd>${esc(item.category)}</dd></div>${uncertain(item) ? `<div><dt>可能丢失区域</dt><dd>${esc(areas(item).join('、'))}<span class="location-uncertain-label">模糊范围，尚未确定丢失位置</span></dd></div>` : ''}<div><dt>${item.type === 'lost' ? '最有可能的地点' : '拾取地点'}</dt><dd>${esc(item.locationDetail)}</dd></div><div><dt>${item.type === 'lost' ? '丢失' : '拾取'}时间</dt><dd>${eventTime(item)}</dd></div></dl><div class="description-block"><h2>物品描述</h2><p>${esc(item.description || '暂无补充描述。')}</p></div><div class="contact-block"><span>联系发布者</span><p id="contact-text" tabindex="0">${esc(displayContact(item)) || '登录后查看联系方式'}</p><button class="button button-primary" data-action="${item.contact ? 'copy' : 'login'}" data-id="${esc(item.id)}">${icon('copy')}复制联系方式</button></div><div class="detail-actions">${favoriteButton(item, favorites, true)}${own ? `<a class="button button-secondary" href="#edit/${encodeURIComponent(item.id)}">${icon('edit')}编辑信息</a>` : ''}</div>${item.status === 'completed' ? `<p class="completion-note">${icon('check')}这条信息${D.statusLabel(item)}，感谢每一份帮助。</p>` : ''}</div></section>`;
+    return `<div class="page-back"><a href="#home">${icon('back')}返回寻物广场</a><span>信息详情</span></div><section class="detail-layout"><div class="detail-picture"><img src="${imageUrl(item.image)}" alt="物品配图"></div><div class="detail-copy"><div class="card-tags">${badges(item)}</div><h1 id="detail-heading">${highlight(item.name, words)}</h1><a class="publisher-link" href="#user/${encodeURIComponent(item.ownerId)}">${avatar({ nickname: item.ownerName, avatar: item.ownerAvatar })}<span><small>发布者</small><strong>${esc(item.ownerName || '同学')}</strong></span>${icon('arrow')}</a><p class="detail-published">${esc(item.ownerName || (own ? '我' : '同学'))}发布 · ${fullTime(item.createdAt)}<span class="detail-updated">修改于 ${fullTime(item.updatedAt || item.createdAt)}</span></p><dl class="detail-fields"><div><dt>物品分类</dt><dd>${esc(item.category)}</dd></div>${uncertain(item) ? `<div><dt>可能丢失区域</dt><dd>${esc(areas(item).join('、'))}<span class="location-uncertain-label">模糊范围，尚未确定丢失位置</span></dd></div>` : ''}<div><dt>${item.type === 'lost' ? '最有可能的地点' : '拾取地点'}</dt><dd>${highlight(item.locationDetail, words)}</dd></div><div><dt>${item.type === 'lost' ? '丢失' : '拾取'}时间</dt><dd>${eventTime(item)}</dd></div></dl><div class="description-block"><h2>物品描述</h2><p>${item.description ? highlight(item.description, words) : '暂无补充描述。'}</p></div><div class="contact-block"><span>联系发布者</span><p id="contact-text" tabindex="0">${esc(displayContact(item)) || '登录后查看联系方式'}</p><button class="button button-primary" data-action="${item.contact ? 'copy' : 'login'}" data-id="${esc(item.id)}">${icon('copy')}复制联系方式</button></div><div class="detail-actions">${favoriteButton(item, favorites, true)}${own ? `<a class="button button-secondary" href="#edit/${encodeURIComponent(item.id)}">${icon('edit')}编辑信息</a>` : ''}</div>${item.status === 'completed' ? `<p class="completion-note">${icon('check')}这条信息${D.statusLabel(item)}，感谢每一份帮助。</p>` : ''}</div></section>`;
   }
   function my(state, type, ownerId, status = 'all') {
     const owned = state.items.filter(item => item.ownerId === ownerId);
@@ -138,5 +157,5 @@
     const label = { 'confirm-reopen': '恢复进行中', 'confirm-clear-favorites': '清空收藏', 'confirm-delete': '删除信息', 'confirm-reset': '重置数据', 'confirm-complete': '标记已完成' }[action] || '确认';
     return `<div class="confirm-dialog ${destructive ? 'dialog-danger' : ''}"><button class="modal-close" data-action="close-modal" aria-label="关闭弹窗">${icon('close')}</button><span class="confirm-symbol">${icon(destructive ? 'reset' : action === 'confirm-reopen' ? 'reset' : 'check')}</span><h2 id="modal-title">${esc(title)}</h2><p id="modal-description">${esc(text)}</p><div class="dialog-actions"><button class="button button-secondary" data-action="close-modal" autofocus>取消</button><button class="button ${destructive ? 'button-danger' : 'button-primary'}" data-action="${esc(action)}" data-id="${esc(id)}">${label}</button></div></div>`;
   }
-  return { esc, icon, imageUrl, avatar, auth, userProfile, recoveryDialog, profileSettings, adminPanel, home, detail, my, form, success, settings, urgentContact, confirmation };
+  return { esc, highlight, icon, imageUrl, avatar, auth, userProfile, recoveryDialog, profileSettings, adminPanel, home, detail, my, form, success, settings, urgentContact, confirmation };
 });
