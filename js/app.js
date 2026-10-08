@@ -8,6 +8,8 @@
   let backendReady = !backend;
   let publicProfile = null;
   let profileRequest = '';
+  let profileRequestVersion = 0;
+  let remoteRefreshVersion = 0;
   let returnAfterLogin = 'my';
   let pendingItemFile = null;
   let pendingAvatarFile = null;
@@ -230,8 +232,19 @@
     }
   }
   async function refreshRemote(draw = true) {
-    state = await API.request('GET', '/state'); ownerId = state.user?.id || null; publicProfile = null;
-    syncAccount(); if (draw) render();
+    const version = ++remoteRefreshVersion;
+    const requestedRoute = location.hash;
+    const next = await API.request('GET', '/state');
+    if (version !== remoteRefreshVersion) return;
+    if (next.user?.id !== state.user?.id) {
+      publicProfile = null; profileRequest = ''; profileRequestVersion++;
+    }
+    state = next; ownerId = state.user?.id || null;
+    syncAccount();
+    if (draw && requestedRoute === location.hash) {
+      render();
+      if (route().page === 'user' && publicProfile?.user.id === route().id) void loadProfile(route().id);
+    }
   }
   async function initializeRemote() {
     try { await API.request('GET', '/auth/me'); await refreshRemote(false); backendReady = true; warningText = ''; filters = defaults(); render(); }
@@ -239,11 +252,17 @@
   }
   async function loadProfile(id) {
     if (profileRequest === id) return; profileRequest = id;
+    const version = ++profileRequestVersion;
     try {
       const result = await API.request('GET', `/users/${encodeURIComponent(id)}`);
-      if (route().page === 'user' && route().id === id) { publicProfile = result; render(); }
-    } catch (error) { if (route().id === id) main.innerHTML = `<section class="empty-state"><h2>${V.esc(error.message)}</h2><a href="#home">返回广场</a></section>`; }
-    finally { if (profileRequest === id) profileRequest = ''; }
+      if (version === profileRequestVersion && route().page === 'user' && route().id === id) { publicProfile = result; render(); }
+    } catch (error) {
+      if (version === profileRequestVersion && route().page === 'user' && route().id === id) {
+        if (publicProfile?.user.id === id) toast(error.message, 'error');
+        else main.innerHTML = `<section class="empty-state"><h2>${V.esc(error.message)}</h2><a href="#home">返回广场</a></section>`;
+      }
+    }
+    finally { if (version === profileRequestVersion) profileRequest = ''; }
   }
   function requireLogin() {
     if (state.user) return;
@@ -753,10 +772,10 @@
     }
   });
   window.addEventListener('hashchange', async () => {
+    render();
     if (backend && backendReady && ['home', 'my', 'detail', 'user', 'success', 'admin'].includes(route().page)) {
-      main.innerHTML = '<section class="empty-state"><h2>正在载入</h2></section>';
-      try { await refreshRemote(); } catch (error) { render(); toast(error.message, 'error'); }
-    } else render();
+      try { await refreshRemote(); } catch (error) { toast(error.message, 'error'); }
+    }
   });
   render();
   if (backend) {

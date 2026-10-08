@@ -63,6 +63,59 @@ describe('网页真实多账号流程（Chrome）', function () {
       await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
       assert.equal(await page.locator('.submit-button').evaluate(button => button.getBoundingClientRect().bottom < document.querySelector('.mobile-nav').getBoundingClientRect().top), true);
       assert.equal(await page.locator('.mobile-nav [data-nav=publish]').getAttribute('aria-current'), 'page');
+
+      await go(page, 'home');
+      let pendingRefresh, refreshStarted;
+      await page.route('**/api/state', request => { pendingRefresh = request; refreshStarted?.(); });
+      try {
+        for (const destination of ['my', 'home']) {
+          pendingRefresh = null;
+          const started = new Promise(resolve => { refreshStarted = resolve; });
+          await page.locator(`.mobile-nav [data-nav=${destination}]`).click();
+          await started;
+          assert.ok(pendingRefresh, 'navigation should still refresh server data');
+          assert.equal(await page.locator(destination === 'my' ? '.account-overview' : '#search-form').count(), 1, 'cached destination remains visible while refresh is pending');
+          assert.equal(await page.locator('#main .empty-state h2').count(), 0, 'cached navigation should not replace content with a loading screen');
+          await fixedNav();
+          const response = page.waitForResponse(result => result.url().endsWith('/api/state'));
+          await pendingRefresh.continue(); await response;
+          pendingRefresh = null;
+        }
+
+        const delayed = new Promise(resolve => { refreshStarted = resolve; });
+        await page.locator('.mobile-nav [data-nav=my]').click(); await delayed;
+        await page.locator('.mobile-nav [data-nav=publish]').click();
+        await page.locator('[name=name]').fill('尚未提交的草稿');
+        const refreshed = await pendingRefresh.fetch();
+        const snapshot = await refreshed.json(); snapshot.user.nickname = '慢请求已结束';
+        await pendingRefresh.fulfill({ response: refreshed, json: snapshot }); pendingRefresh = null;
+        await page.waitForFunction(() => document.querySelector('.header-account-label')?.textContent === '慢请求已结束');
+        assert.equal(await page.locator('[name=name]').inputValue(), '尚未提交的草稿', 'a previous route response must not redraw the publish form');
+
+        const failed = new Promise(resolve => { refreshStarted = resolve; });
+        await page.locator('.mobile-nav [data-nav=my]').click(); await failed;
+        await pendingRefresh.abort('failed'); pendingRefresh = null;
+        await page.waitForFunction(() => !document.querySelector('#toast').hidden && document.querySelector('#toast').dataset.kind === 'error');
+        assert.equal(await page.locator('.account-overview').count(), 1, 'a failed background refresh keeps the cached page');
+
+        const firstStarted = new Promise(resolve => { refreshStarted = resolve; });
+        await page.locator('.mobile-nav [data-nav=home]').click(); await firstStarted;
+        const older = pendingRefresh;
+        try {
+          const olderResponse = await older.fetch(); const olderState = await olderResponse.json(); olderState.user.nickname = '过期刷新';
+          const secondStarted = new Promise(resolve => { refreshStarted = resolve; });
+          await page.locator('.mobile-nav [data-nav=my]').click(); await secondStarted;
+          const newerResponse = await pendingRefresh.fetch(); const newerState = await newerResponse.json(); newerState.user.nickname = '最新刷新';
+          await pendingRefresh.fulfill({ response: newerResponse, json: newerState }); pendingRefresh = null;
+          await page.waitForFunction(() => document.querySelector('.header-account-label')?.textContent === '最新刷新');
+          const finished = page.waitForResponse(response => response.url().endsWith('/api/state'));
+          await older.fulfill({ response: olderResponse, json: olderState }); await (await finished).finished();
+          assert.equal(await page.locator('.header-account-label').innerText(), '最新刷新', 'an older response cannot overwrite the latest state');
+        } finally { await older.abort().catch(() => {}); }
+      } finally {
+        if (pendingRefresh) await pendingRefresh.abort().catch(() => {});
+        await page.unroute('**/api/state');
+      }
     } finally { await page.close(); }
   });
   it('publishes real image and multiple locations; another account can view and save it', async () => {
@@ -111,6 +164,22 @@ describe('网页真实多账号流程（Chrome）', function () {
     await b.locator('[data-action=favorite]').click(); await b.locator('[data-action=favorite][aria-pressed=false]').waitFor();
     await b.locator('[data-action=favorite]').click(); await b.locator('[data-action=favorite][aria-pressed=true]').waitFor();
     assert.equal(await b.locator('.public-stats strong').nth(2).innerText(), '0', '收藏不能改变发布者的完成数量');
+
+    await b.locator('.mobile-nav [data-nav=home]').click(); await b.locator('#search-form').waitFor();
+    let delayedProfile, profileReady;
+    const profileStarted = new Promise(resolve => { profileReady = resolve; });
+    await b.route('**/api/users/*', request => { delayedProfile = request; profileReady(); });
+    try {
+      await b.evaluate(id => { location.hash = `#user/${id}`; }, userId);
+      await profileStarted;
+      assert.equal(await b.locator('.public-profile').count(), 1, 'a previously viewed public profile stays visible during refresh');
+      await delayedProfile.abort('failed'); delayedProfile = null;
+      await b.waitForFunction(() => !document.querySelector('#toast').hidden && document.querySelector('#toast').dataset.kind === 'error');
+      assert.equal(await b.locator('.public-profile').count(), 1, 'a failed refresh keeps the known public profile');
+    } finally {
+      if (delayedProfile) await delayedProfile.abort().catch(() => {});
+      await b.unroute('**/api/users/*');
+    }
   });
   it('completes and reopens with confirmation and updates public statistics', async () => {
     await go(a, 'my'); await a.locator('[data-action=complete]').click(); await a.locator('[data-action=confirm-complete]').click(); await a.locator('.completed-card').waitFor();
