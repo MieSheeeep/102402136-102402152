@@ -25,23 +25,18 @@ const flow = svg(1000, 1050,
   box(260, 896, 480, 92, ['保存为“已找到”／“已归还”', '重新加载列表或详情可见新状态']) +
   `<path d="M260,942 L80,942 L80,402 L260,402" fill="none" stroke="#678577" stroke-width="3" marker-end="url(#arrow)"/>` +
   text(145, 715, '误操作时', 20) + text(145, 746, '本人确认取消完成', 20));
-const data = svg(1060, 780,
-  text(530, 52, '两种运行方式 · 数据分别保存', 30) +
-  text(530, 108, 'Chrome直接打开 index.html', 25) +
-  box(40, 143, 270, 110, ['网页界面', 'views.js／app.js']) + arrow(310, 198, 390, 198) +
-  box(390, 143, 270, 110, ['业务规则 data.js', '校验／筛选／状态']) + arrow(660, 198, 740, 198) +
-  box(740, 143, 280, 110, ['localStorage', '当前浏览器信息与收藏']) +
-  text(530, 292, 'seed.js提供初始数据；固定本地用户，无账号登录', 20) +
-  `<line x1="40" y1="330" x2="1020" y2="330" stroke="#d5dfd6"/>` +
-  text(530, 386, 'npm start 启动完整本地应用', 25) +
-  box(40, 430, 270, 110, ['网页界面', 'api.js 发出HTTP请求']) + arrow(310, 485, 390, 485) +
-  box(390, 430, 270, 110, ['Fastify后端接口', '登录／权限／业务校验']) + arrow(660, 466, 740, 466) +
-  box(740, 420, 280, 100, ['SQLite数据库', '用户／发布／收藏／会话']) +
-  `<path d="M660,505 L700,505 L700,610 L740,610" fill="none" stroke="#678577" stroke-width="3" marker-end="url(#arrow)"/>` +
-  box(740, 560, 280, 100, ['本地图片文件', '校验后转为WebP保存']) +
-  `<path d="M525,540 L525,610 L175,610 L175,540" fill="none" stroke="#678577" stroke-width="3" marker-end="url(#arrow)"/>` +
-  text(350, 650, '接口返回记录，页面更新展示', 20) +
-  text(530, 730, '两种数据不自动互通；演示内容仅在需要初始化时写入', 20));
+const data = svg(1060, 580,
+  text(530, 52, '应用结构', 30) +
+  box(40, 170, 270, 130, ['网页界面', 'app.js／views.js', 'data.js 校验与筛选']) +
+  arrow(310, 205, 390, 205) + text(350, 185, '请求', 19) +
+  arrow(390, 265, 310, 265) + text(350, 290, '响应', 19) +
+  box(390, 170, 270, 130, ['Fastify后端接口', '登录／权限／业务校验']) +
+  arrow(660, 205, 740, 205) +
+  box(740, 150, 280, 110, ['SQLite数据库', '用户／发布／收藏／会话']) +
+  `<path d="M660,265 L700,265 L700,370 L740,370" fill="none" stroke="#678577" stroke-width="3" marker-end="url(#arrow)"/>` +
+  box(740, 315, 280, 110, ['图片文件', '校验后转为WebP保存']) +
+  text(530, 485, 'npm start → http://127.0.0.1:3000', 23) +
+  text(530, 535, 'var/campus.sqlite 保存数据，var/uploads/ 保存图片', 21));
 const store = (x, y, lines) => `<path d="M${x + 235},${y} H${x} V${y + 110} H${x + 235}" fill="#f0f3f7" stroke="#9facbb" stroke-width="2"/>${lines.map((line, i) => text(x + 117, y + 62 - (lines.length - 1) * 16 + i * 32, line, 21)).join('')}`;
 const requestRow = (y, actor, process, database, input, output, write, result) =>
   `<rect x="28" y="${y}" width="180" height="110" fill="#f8eee3" stroke="#c9d7ce"/>${actor.map((line, i) => text(118, y + 62 - (actor.length - 1) * 16 + i * 32, line)).join('')}` +

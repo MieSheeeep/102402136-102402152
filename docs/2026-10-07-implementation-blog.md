@@ -2,10 +2,6 @@
 
 ## 一、作业链接与结对信息（2分）
 
-校园里的寻物消息常发在不同群里，过一会儿就被新消息盖住。这个项目把寻物和招领集中到一个网页中，支持发布、搜索、收藏、联系发布者和更新完成状态。
-
-实现采用普通HTML、CSS和JavaScript，配合Fastify与SQLite。本地HTML入口适合直接体验，启动后端后则能使用账号、共享数据和图片文件。
-
 | 项目 | 内容 |
 | --- | --- |
 | 课程 | [H202601软件工程与软件工程实践](https://edu.cnblogs.com/campus/fzu/2026-01SoftwareEngineeringandSoftwareEngineeringPractice) |
@@ -57,7 +53,7 @@
 
 把寻物与招领放进同一个列表，按“发布→查找→核对详情→联系→确认找回或归还”组织操作。首页、详情和“我的发布”读取同一条记录，收藏只存编号，避免各页面内容不一致。
 
-校验、筛选和状态规则集中在`data.js`，页面负责输入和展示。这样浏览器存储与后端存储可以共用业务规则，也方便单独测试。
+校验、筛选和状态规则集中在`data.js`，页面负责输入和展示，方便复用和单独测试。
 
 <img src="blog-images/2026-10-07/core-flow.png" alt="发布、查找、联系与完成状态的流程" width="680">
 
@@ -65,9 +61,9 @@
 
 页面、业务规则和存储分别处理，方便复用规则和独立测试。
 
-同一套前端支持两种入口：直接打开HTML使用`localStorage`；启动Fastify后，通过接口读写SQLite和图片文件。
+项目最初用静态页面和浏览器存储验证功能，后来接入Fastify与SQLite，增加账号登录、共享数据和图片文件保存。
 
-<img src="blog-images/2026-10-07/data-flow.png" alt="两种运行方式下的前端、接口与存储结构" width="680">
+<img src="blog-images/2026-10-07/data-flow.png" alt="前端、后端接口、数据库与图片存储结构" width="680">
 
 `app.js`按`#home`、`#publish`、`#detail/编号`等地址选择页面，`views.js`生成内容。按钮事件统一由主容器监听，通过`data-action`分发，避免重绘后丢失事件；底部导航放在主内容区外。
 
@@ -87,15 +83,15 @@
 
 ### 4.3 数据组织
 
-静态模式保存的JSON结构：
+`/api/state`返回的物品、收藏与偏好数据：
 
 ```json
 {
-  "version": 1,
   "items": [
     {
       "id": "post-demo-umbrella",
-      "ownerId": "me",
+      "ownerId": "user-demo-student",
+      "version": 1,
       "type": "lost",
       "name": "黑色长柄雨伞",
       "category": "生活用品",
@@ -123,7 +119,7 @@
 - `id`是物品编号，`ownerId`关联发布者；收藏只存`id`，展示时读取最新内容。
 - `occurredAt`是丢失／拾取时间，`createdAt`是发布时间，`updatedAt`是修改时间；`timePrecision`区分具体时间和大致日期。
 - `locationGroups`保存可能区域，寻物展示为“模糊范围”；`locationGroup`保留首个区域兼容旧字段。
-- 外层`version`是本地存储格式版本；后端每条发布另有递增版本号，用于检查编辑冲突。
+- `version`是发布记录的版本号，每次修改递增，用于检查编辑冲突。
 
 用户资料单独保存，详情按`ownerId`读取最新昵称和头像，公开主页按发布记录统计数量。后端图片保存为文件，`image`只存地址。
 
@@ -138,7 +134,7 @@
 
 <img src="blog-images/2026-10-07/support-data-flow.png" alt="账号、个人资料、图片与公告的数据流" width="760">
 
-首次启动写入演示账号、七条物品和三条公告，重启不覆盖修改。数据库和图片持久保存在本地，可用`server/backup.cjs`备份；HTML模式的数据单独保存在浏览器中。
+首次启动写入演示账号、七条物品和三条公告，重启不覆盖修改。数据库和图片持久保存在本地，可用`server/backup.cjs`备份。
 
 ### 4.4 发布与保存
 
@@ -168,20 +164,7 @@ navigate(edit ? 'my' : `success/${encodeURIComponent(record.id)}`);
 
 `await`保证上传、保存和刷新依次执行。`API.request()`补上`/api`前缀并处理JSON和响应错误，`catch`提示失败，`finally`恢复按钮。
 
-HTML模式由`createItem()`生成记录、`createStore()`写入`localStorage`。图片用Canvas压缩到长边不超过720像素的WebP数据地址，随记录保存。
-
-保存前比较当前存储与上次读取的内容，发现其他标签页已修改就拒绝覆盖：
-
-```javascript
-if (expectedRaw === undefined || currentRaw !== expectedRaw) {
-  throw new Error('另一页面已更新数据，请刷新当前页面后重试；本次修改未保存。');
-}
-const serialized = JSON.stringify(state);
-storage.setItem(key, serialized);
-expectedRaw = serialized;
-```
-
-`JSON.stringify()`将状态转为字符串，读取时用`JSON.parse()`恢复。这项比较用于发现多标签页冲突，后端则使用数据库条件更新。
+上传接口校验图片内容并转换为WebP，文件保存到上传目录，物品记录只保存图片地址。
 
 <img src="blog-images/2026-10-07/03-publish.png" alt="发布表单的三个区域" width="760">
 
@@ -254,7 +237,7 @@ return getItem(old.id, user);
 
 点爱心留下可能相关的线索，之后从首页“收藏”筛选或“我的收藏”继续查看。收藏只存物品编号，内容始终读取最新记录。
 
-后端以“用户编号＋物品编号”为唯一关系，防止重复收藏；删除物品时清除关联收藏。静态模式用数组切换编号：
+后端以“用户编号＋物品编号”为唯一关系，防止重复收藏；删除物品时清除关联收藏。页面中的收藏数组通过以下函数切换编号，再向接口提交目标状态：
 
 ```javascript
 function toggleFavorite(favorites, id) {
@@ -337,15 +320,9 @@ package.json               依赖和运行命令
 README.md                  使用说明
 ```
 
-### 6.2 两种运行方式
+### 6.2 运行方式
 
-#### HTML运行
-
-下载并解压完整项目，用Chrome打开根目录的`index.html`即可。无需安装依赖，发布和收藏等数据保存在当前浏览器的`localStorage`中。
-
-#### 后端运行
-
-安装Node.js 24.19及以上的24.x版本，在项目目录执行：
+下载并解压完整项目，安装Node.js 24.19及以上的24.x版本，在项目目录执行：
 
 ```powershell
 npm.cmd ci
