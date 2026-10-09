@@ -199,6 +199,107 @@
           "③ 已完成：灰蓝色"
         ]
       ]
+    },
+    {
+      "name": "10-favorite-focus",
+      "title": "收藏",
+      "subtitle": "同一条U盘信息：空心爱心与收藏后的粉色标记",
+      "shots": [
+        [
+          "home.jpg",
+          "① 未收藏",
+          {
+            "left": 20,
+            "top": 425,
+            "width": 442,
+            "height": 163
+          }
+        ],
+        [
+          "favorite-list.jpg",
+          "② 我的收藏",
+          {
+            "left": 20,
+            "top": 395,
+            "width": 425,
+            "height": 305
+          }
+        ]
+      ]
+    },
+    {
+      "name": "11-notice-focus",
+      "title": "紧急公告栏",
+      "subtitle": "切换三条急寻信息，查看物品、丢失时间、地点和酬谢",
+      "shots": [
+        [
+          "home.jpg",
+          "① 雨伞 · 酬谢30元",
+          {
+            "left": 20,
+            "top": 90,
+            "width": 442,
+            "height": 160
+          }
+        ],
+        [
+          "notice-2.jpg",
+          "② 课本 · 酬谢20元",
+          {
+            "left": 18,
+            "top": 85,
+            "width": 420,
+            "height": 160
+          }
+        ],
+        [
+          "notice-3.jpg",
+          "③ U盘 · 酬谢50元",
+          {
+            "left": 18,
+            "top": 85,
+            "width": 420,
+            "height": 160
+          }
+        ]
+      ]
+    },
+    {
+      "name": "12-color-focus",
+      "title": "卡片配色",
+      "subtitle": "直接对照三种卡片的底色和状态文字",
+      "shots": [
+        [
+          "home.jpg",
+          "① 寻物 · 寻找中",
+          {
+            "left": 20,
+            "top": 425,
+            "width": 442,
+            "height": 163
+          }
+        ],
+        [
+          "my.jpg",
+          "② 招领 · 待认领",
+          {
+            "left": 32,
+            "top": 510,
+            "width": 420,
+            "height": 285
+          }
+        ],
+        [
+          "completed-list.jpg",
+          "③ 招领 · 已归还",
+          {
+            "left": 30,
+            "top": 500,
+            "width": 390,
+            "height": 270
+          }
+        ]
+      ]
     }
   ],
   "outputs": [
@@ -392,6 +493,65 @@
         {
           "filename": "completed-list.jpg",
           "caption": "③ 已完成：灰蓝色"
+        }
+      ]
+    },
+    {
+      "filename": "10-favorite-focus.png",
+      "width": 932,
+      "height": 418,
+      "displayWidth": 760,
+      "title": "收藏",
+      "shots": [
+        {
+          "filename": "home.jpg",
+          "caption": "① 未收藏"
+        },
+        {
+          "filename": "favorite-list.jpg",
+          "caption": "② 我的收藏"
+        }
+      ]
+    },
+    {
+      "filename": "11-notice-focus.png",
+      "width": 1390,
+      "height": 273,
+      "displayWidth": 760,
+      "title": "紧急公告栏",
+      "shots": [
+        {
+          "filename": "home.jpg",
+          "caption": "① 雨伞 · 酬谢30元"
+        },
+        {
+          "filename": "notice-2.jpg",
+          "caption": "② 课本 · 酬谢20元"
+        },
+        {
+          "filename": "notice-3.jpg",
+          "caption": "③ U盘 · 酬谢50元"
+        }
+      ]
+    },
+    {
+      "filename": "12-color-focus.png",
+      "width": 1390,
+      "height": 398,
+      "displayWidth": 760,
+      "title": "卡片配色",
+      "shots": [
+        {
+          "filename": "home.jpg",
+          "caption": "① 寻物 · 寻找中"
+        },
+        {
+          "filename": "my.jpg",
+          "caption": "② 招领 · 待认领"
+        },
+        {
+          "filename": "completed-list.jpg",
+          "caption": "③ 招领 · 已归还"
         }
       ]
     }

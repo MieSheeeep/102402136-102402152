@@ -13,6 +13,9 @@ const groups = [
   { name: '07-profile-settings', title: '个人主页与设置', subtitle: '个人概况、公开主页、资料编辑和浏览偏好', shots: [['my.jpg', '① 个人概况'], ['public-profile.jpg', '② 公开主页'], ['settings.jpg', '③ 资料编辑'], ['settings-preferences.jpg', '④ 浏览偏好']] },
   { name: '08-notices', title: '紧急寻物公告', subtitle: '三条公告依次展示，核心信息为物品、时间、地点和酬谢', short: true, shots: [['home.jpg', '① 黑色长柄雨伞', { left: 0, top: 70, width: 480, height: 190 }], ['notice-2.jpg', '② 高等数学课本', { left: 0, top: 65, width: 467, height: 185 }], ['notice-3.jpg', '③ 黑色U盘', { left: 0, top: 65, width: 467, height: 185 }]] },
   { name: '09-color-hints', title: '颜色提示', subtitle: '寻物、招领和已完成分别用不同配色，同时保留文字状态', shots: [['home.jpg', '① 寻物：暖棕色'], ['my.jpg', '② 招领：浅绿色'], ['completed-list.jpg', '③ 已完成：灰蓝色']] },
+  { name: '10-favorite-focus', title: '收藏', subtitle: '同一条U盘信息：空心爱心与收藏后的粉色标记', shots: [['home.jpg', '① 未收藏', { left: 20, top: 425, width: 442, height: 163 }], ['favorite-list.jpg', '② 我的收藏', { left: 20, top: 395, width: 425, height: 305 }]] },
+  { name: '11-notice-focus', title: '紧急公告栏', subtitle: '切换三条急寻信息，查看物品、丢失时间、地点和酬谢', shots: [['home.jpg', '① 雨伞 · 酬谢30元', { left: 20, top: 90, width: 442, height: 160 }], ['notice-2.jpg', '② 课本 · 酬谢20元', { left: 18, top: 85, width: 420, height: 160 }], ['notice-3.jpg', '③ U盘 · 酬谢50元', { left: 18, top: 85, width: 420, height: 160 }]] },
+  { name: '12-color-focus', title: '卡片配色', subtitle: '直接对照三种卡片的底色和状态文字', shots: [['home.jpg', '① 寻物 · 寻找中', { left: 20, top: 425, width: 442, height: 163 }], ['my.jpg', '② 招领 · 待认领', { left: 32, top: 510, width: 420, height: 285 }], ['completed-list.jpg', '③ 招领 · 已归还', { left: 30, top: 500, width: 390, height: 270 }]] },
 ];
 const escape = value => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 const label = (x, y, value, size = 14, color = '#294237') => `<text x="${x}" y="${y}" fill="${color}" font-family="Microsoft YaHei, sans-serif" font-size="${size}">${escape(value)}</text>`;
