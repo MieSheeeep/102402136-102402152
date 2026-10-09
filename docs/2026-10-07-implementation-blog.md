@@ -53,39 +53,23 @@
 
 ## 四、解题思路描述与设计实现说明（20分）
 
-### 4.1 解题思路
+### 4.1 代码组织
 
-代码先围绕物品记录来写：寻物和招领字段相近，共用数据结构和创建、查询、更新函数，用`type`处理两者的差异。编辑复用发布表单，完成与取消完成只更新状态，不另造一份记录。
+一开始先用静态页面把功能跑通，接后端时把校验和筛选保留在`data.js`：函数只接收数据、不读取DOM，浏览器和Node.js都能调用。比如`validateItem()`返回字段错误，前端拿来显示提示，后端拿来决定是否拒绝请求，同一个规则不用写两份。
 
-计算和界面分开。`data.js`里的`validateItem()`、`queryItems()`等函数接收普通对象，不读取DOM，前后端和Mocha直接调用；`views.js`根据结果生成HTML，`app.js`负责接按钮事件、调用函数和更新页面。改筛选规则就改函数，改卡片排版就改模板。
+页面由`views.js`生成HTML，`app.js`处理点击。重绘会换掉按钮，我们在外层统一监听，再从点击位置找带`data-action`的元素：
 
-接口请求统一放进`api.js`，处理JSON、登录凭据和响应错误。后端从会话确定操作人，再调用业务函数、执行SQL；页面收到结果后更新`state`并渲染。这样按钮处理里不用到处重复写`fetch`，也不会让页面传来的用户编号决定权限。
+```javascript
+const trigger = event.target.closest('[data-action]');
+if (!trigger || trigger.disabled) return;
+const action = trigger.dataset.action;
+const id = trigger.dataset.id;
+const item = state.items.find(post => post.id === id);
+```
 
-<img src="blog-images/2026-10-07/core-flow.png" alt="发布表单、业务函数、后端接口与数据库的代码调用关系" width="680">
+点到按钮里的图标也能找到按钮，再根据`action`进入收藏、编辑等分支。请求统一交给`api.js`，由它序列化JSON、携带Cookie和CSRF凭据，并把失败响应转为异常，事件处理只需接住错误。
 
-### 4.2 整体结构
-
-页面通过`api.js`提交数据，后端处理账号和写入，筛选等计算放在`data.js`；界面改动不需要跟着改数据库读写。
-
-一开始先用静态页面和浏览器存储把功能跑起来，后来接上Fastify和SQLite，才有了账号登录、共享数据和图片文件保存。总不能我发布了东西，只有我自己看得见吧。
-
-<img src="blog-images/2026-10-07/data-flow.png" alt="前端、后端接口、数据库与图片存储结构" width="680">
-
-`app.js`按`#home`、`#publish`、`#detail/编号`选择页面，`views.js`生成HTML。重绘会替换按钮，所以把点击监听放在不会被替换的主容器上，用`event.target.closest('[data-action]')`找到按钮并分发操作；底部导航也放在重绘区域外。
-
-| 文件 | 具体职责 |
-| --- | --- |
-| `js/app.js` | 路由、事件监听、表单草稿、弹窗、页面状态与刷新 |
-| `js/views.js` | 卡片、详情、表单等页面模板，用户文字转义和关键词高亮 |
-| `js/data.js` | 输入校验、创建与更新记录、搜索筛选、收藏和状态规则 |
-| `js/api.js` | 请求接口、处理响应错误、上传图片和携带登录凭据 |
-| `server/app.cjs` | 登录会话、接口校验、权限判断、数据库与图片读写 |
-
-每切一次页面都闪“正在加载”，看着确实烦。我们改成先显示当前`state`，后台再更新；请求序号每次递增，只接收最新序号的响应，旧请求就算晚到也不再改页面。
-
-后端保存密码的加盐哈希，通过HttpOnly Cookie识别登录用户，写操作检查CSRF凭据。游客可浏览，发布、收藏和查看联系方式需要登录。
-
-### 4.3 数据组织
+### 4.2 数据存储
 
 `/api/state`返回的物品、收藏与偏好数据：
 
@@ -122,26 +106,25 @@
 
 昵称和头像只存用户表，发布关联用户编号，换头像就不用把每条旧发布都改一遍。收藏也只存物品编号；图片另存文件，JSON里放地址，没必要每次请求列表都把照片塞进去。
 
-| 数据表 | 保存内容 | 与其他数据的联系 |
-| --- | --- | --- |
-| `users`、`sessions` | 账号资料、密码及恢复码摘要、偏好、会话 | 会话关联用户；发布、收藏、图片以用户编号确定归属 |
-| `items` | 物品编号、发布者编号、内容、版本 | 发布者资料从用户表读取；完成数量从物品状态统计 |
-| `favorites` | 用户编号、物品编号 | 两个编号组成唯一关系；删除物品后级联删除 |
-| `uploads`与图片目录 | 图片编号、所属用户、大小和文件 | 物品及头像引用图片地址 |
-| `urgent_requests`、`notices` | 申请或公告所关联物品、酬谢；公告另存到期时间 | 关联原发布；审核批准时写公告并删除申请 |
-| `app_meta` | 演示初始化及资料迁移标记 | 启动时读取标记，已初始化就跳过导入 |
+SQLite中的物品表把编号、发布者和版本单独设为列，其他内容存JSON：
 
-<img src="blog-images/2026-10-07/support-data-flow.png" alt="账号、个人资料、图片与公告的数据流" width="760">
+```sql
+CREATE TABLE IF NOT EXISTS items (
+  id TEXT PRIMARY KEY,
+  owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  data TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS items_owner ON items(owner_id);
+```
 
-第一次启动会放入演示账号、七条物品和三条公告，让页面不至于空空的。之后读已有数据，重启不会把刚发布的东西洗掉；需要备份时用`server/backup.cjs`。
+`owner_id`用于查询本人发布，`version`参与修改条件，单独存列便于直接写SQL；名称、地点等内容通过`JSON.stringify()`保存，读取时再解析成页面使用的对象。
 
-### 4.4 发布与保存
+### 4.3 发布与保存
 
 漏填就直接在输入旁提醒，不让用户猜哪里错了。前后端都调用`validateItem()`：前端方便修改，后端检查绕过表单发来的请求；提交时暂时禁用按钮，失败后保留输入，免得还要重填一遍。
 
-图片通过`POST /api/uploads`返回地址，再随表单提交到`POST /api/items`。服务器再次校验，从登录会话取得发布者编号，保存后才返回成功。
-
-`app.js`中的后端提交逻辑：
+表单提交时，有图片先上传，拿到地址后再写入物品请求。编辑与新增共用这一段代码，区别在请求方法、路径和是否带版本号：
 
 ```javascript
 requireLogin();
@@ -161,13 +144,24 @@ await refreshRemote(false);
 navigate(edit ? 'my' : `success/${encodeURIComponent(record.id)}`);
 ```
 
-这里先上传图片，是因为物品记录里要放它的地址。拿到地址再提交物品，保存成功才刷新并跳转；中途出错就进`catch`提示，`finally`恢复按钮，不能没存上就先说“发布成功”。
+后端的新增分支从会话取得用户，校验后创建记录，再执行参数化SQL：
+
+```javascript
+const user = auth(req);
+const body = req.body || {};
+const errors = D.validateItem(body);
+if (Object.keys(errors).length) fail(400, '请检查发布信息', errors);
+const item = D.createItem(body, user.id);
+item.image = ownedImage(body.image, user);
+db.prepare('INSERT INTO items (id,owner_id,data) VALUES (?,?,?)')
+  .run(item.id, user.id, JSON.stringify(item));
+```
+
+发布者编号来自`auth(req)`，图片还要通过`ownedImage()`检查归属；表单内容通过`?`绑定为值。写入后返回记录，前端刷新数据再跳转；出错则进入`catch`，按钮在`finally`恢复。
 
 上传接口用Sharp读取实际图片格式，不按文件后缀判断；随后修正旋转方向、按比例缩到1600×1600以内，以质量82转为WebP，统一图片格式和尺寸。
 
-<img src="blog-images/2026-10-07/request-data-flow.png" alt="发布、查询、状态更新和收藏的业务数据流" width="760">
-
-### 4.5 搜索与列表
+### 4.4 搜索与列表
 
 首页读取`/api/state`，再用`queryItems()`筛选。关键词按空白拆分、忽略大小写，每个词都需命中名称、描述或具体地点：
 
@@ -186,11 +180,11 @@ function matchesKeywords(item, words) {
 
 搜“雨伞 金属环”时，两个词都要找到，但不必挤在同一个字段里。名称有雨伞、描述有金属环就能命中，这就是这里用`every()`的原因。
 
-多选采用组内任选、组间同时满足：选“教学楼、食堂”加“生活用品”，表示这两个地点中任一处的生活用品。日期按丢失／拾取时间筛选，包含起止两天；排序按发布时间。
+多选用`includes()`和`some()`做组内匹配，各组之间用`&&`连接：地点中任一处命中，还要同时符合分类。日期取`occurredAt`的前10位，按`YYYY-MM-DD`比较起止日期；排序则比较`createdAt`的时间戳。
 
 筛选面板编辑`filterDraft`，点击应用才复制到正式条件，用户可以一次选完地点和分类。列表先算匹配结果，再截取前12条；加载更多增加上限，换条件则恢复12条。高亮先转义原文再加入`mark`，输入中的HTML标签会显示为文字。
 
-### 4.6 编辑与状态同步
+### 4.5 编辑与状态同步
 
 编辑直接复用发布表单，不再另写一套，通过`PATCH /api/items/:id`提交内容和版本号。他人的发布改不了（403），旧版本也不能直接覆盖（409），原编号、发布者、类型和发布时间不变。
 
@@ -225,6 +219,8 @@ return getItem(old.id, user);
 ```
 
 比如开着两个页面，都读到版本1：第一个保存后变成2，第二个再用`WHERE version=1`就找不到记录，`result.changes`为0，返回409。把版本条件写进同一条SQL，后保存的人就得先看看新内容，不能直接把前一次修改盖掉。
+
+<img src="blog-images/2026-10-07/request-data-flow.png" alt="发布、查询、状态更新和收藏的数据读写关系" width="760">
 
 ## 五、附加特点设计与展示（10分）
 
