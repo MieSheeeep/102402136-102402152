@@ -8,24 +8,24 @@ const box = (x, y, w, h, lines, fill = '#f1f5ef') => `<rect x="${x}" y="${y}" wi
 const arrow = (x1, y1, x2, y2) => `<path d="M${x1},${y1} L${x2},${y2}" fill="none" stroke="#678577" stroke-width="3" marker-end="url(#arrow)"/>`;
 const svg = (w, h, content) => `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#678577"/></marker></defs><rect width="100%" height="100%" fill="#fff"/>${content}</svg>`;
 const flow = svg(1000, 1050,
-  text(500, 52, '发布与找回流程', 36) +
-  box(260, 88, 480, 84, ['发布者填写寻物／招领信息']) +
+  text(500, 52, '发布代码调用', 36) +
+  box(260, 88, 480, 84, ['app.js 读取表单 → draft']) +
   arrow(500, 172, 500, 220) +
-  `<path d="M500,220 L740,266 L500,312 L260,266 Z" fill="#f7ece1" stroke="#a9b9ad" stroke-width="2"/>` + text(500, 276, '信息是否有效？') +
-  arrow(740, 266, 790, 266) + text(765, 248, '否', 20) + box(790, 220, 180, 92, ['校验未通过', '提示后修改'], '#f7ece1') +
+  `<path d="M500,220 L740,266 L500,312 L260,266 Z" fill="#f7ece1" stroke="#a9b9ad" stroke-width="2"/>` + text(500, 276, 'validateItem() 通过？', 24) +
+  arrow(740, 266, 790, 266) + text(765, 248, '否', 20) + box(790, 220, 180, 92, ['显示字段错误', '保留输入'], '#f7ece1') +
   `<path d="M880,220 L880,130 L740,130" fill="none" stroke="#678577" stroke-width="3" marker-end="url(#arrow)"/>` +
   arrow(500, 312, 500, 360) + text(530, 344, '是', 20) +
-  box(260, 360, 480, 84, ['保存为“进行中”']) +
+  box(260, 360, 480, 84, ['有图片先调用 API.upload()', 'API.request() 提交 POST /api/items']) +
   arrow(500, 444, 500, 492) +
-  box(260, 492, 480, 84, ['其他同学浏览／搜索／筛选']) +
+  box(260, 492, 480, 84, ['server/app.cjs 接收请求', 'auth() 识别用户，validateItem() 校验']) +
+  arrow(740, 534, 790, 534) + box(790, 492, 180, 84, ['请求出错', 'catch 提示'], '#f7ece1') +
+  `<path d="M880,492 L880,430 L980,430 L980,130 L740,130" fill="none" stroke="#678577" stroke-width="3" marker-end="url(#arrow)"/>` +
   arrow(500, 576, 500, 624) +
-  box(260, 624, 480, 84, ['打开详情，按联系方式在应用外沟通']) +
+  box(260, 624, 480, 84, ['createItem() 生成记录', 'ownedImage() 检查图片归属']) +
   arrow(500, 708, 500, 756) +
-  box(260, 756, 480, 92, ['确认找回／归还后', '发布者在“我的发布”确认完成']) +
+  box(260, 756, 480, 92, ['db.prepare().run() 执行 INSERT', '返回保存后的记录']) +
   arrow(500, 848, 500, 896) +
-  box(260, 896, 480, 92, ['保存为“已找到”／“已归还”', '重新加载列表或详情可见新状态']) +
-  `<path d="M260,942 L80,942 L80,402 L260,402" fill="none" stroke="#678577" stroke-width="3" marker-end="url(#arrow)"/>` +
-  text(165, 715, '确认取消完成', 24) + text(165, 753, '恢复进行中', 24));
+  box(260, 896, 480, 92, ['refreshRemote() 获取新 state', 'views.js 生成页面内容']));
 const data = svg(1060, 580,
   text(530, 52, '应用结构', 36) +
   box(40, 170, 270, 130, ['网页界面', 'app.js／views.js', 'data.js 校验与筛选']) +
