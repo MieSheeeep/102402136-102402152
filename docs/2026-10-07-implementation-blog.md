@@ -338,11 +338,23 @@ npm.cmd start
 
 业务函数可以直接在Node.js运行，因此选择Mocha组织测试、`node:assert/strict`比较结果，也能用`async/await`测试接口。
 
-学习时可以先参考[Mocha入门文档](https://mochajs.org/getting-started/)完成“准备文件、编写断言、执行测试”，再看[异步测试](https://mochajs.org/features/asynchronous-code/)和[Hooks](https://mochajs.org/features/hooks/)。
+学习参考[Mocha入门文档](https://mochajs.org/getting-started/)，从一个函数的输入和预期结果开始写用例。
 
-#### 环境与测试文件
+#### 安装Mocha
 
-执行`npm.cmd ci`安装依赖，其中已包含Mocha。项目测试放在`tests/*.test.cjs`，通过`require()`导入模块。
+在已有Node.js项目中安装：
+
+```powershell
+npm.cmd install --save-dev mocha
+```
+
+本项目已配置Mocha，下载后执行`npm.cmd ci`即可。
+
+#### 简单讲解
+
+Mocha负责组织和运行测试，断言负责比较实际结果与预期：`describe()`分组，`it()`定义用例，`assert.equal()`比较单个值，`assert.deepEqual()`比较数组或对象。断言不相等时，用例失败并显示差异。
+
+#### 例子一：收藏
 
 将收藏测试保存为`docs/favorite-example.test.cjs`：
 
@@ -361,11 +373,7 @@ describe('收藏', () => {
 });
 ```
 
-`describe()`组织一组测试，`it()`定义一个用例。这里检查`toggleFavorite()`第一次加入编号、第二次移除，`deepEqual()`比较数组结果。
-
-#### 运行与结果
-
-在项目根目录执行：
+这个用例检查第一次点击加入编号、第二次点击移除。在项目根目录运行：
 
 ```powershell
 npm.cmd exec -- mocha docs/favorite-example.test.cjs
@@ -373,22 +381,11 @@ npm.cmd exec -- mocha docs/favorite-example.test.cjs
 
 通过时显示`1 passing`。把第一次的预期改为`[]`，可看到实际值与预期的差异；观察后恢复为`['one']`。
 
-项目中的常用命令如下：
-
-```powershell
-npm.cmd test                         # 运行业务、视图和接口测试
-npm.cmd test -- --grep "favorite"   # 只检查名称含favorite的用例
-npm.cmd run test:watch               # 修改后自动重跑
-npm.cmd run test:browser             # 运行Chrome页面流程
-```
-
-单个值用`equal()`，数组和对象用`deepEqual()`，字段是否存在用`ok()`。接口测试用`await`等待响应，`beforeEach()`准备临时数据库和账号，`afterEach()`清理，避免用例互相影响。
-
-### 7.2 日期筛选测试
+#### 例子二：日期筛选
 
 日期范围包含起止两天，所以测试要覆盖两端、范围外和缺失时间。
 
-先准备一条其他字段都合法的物品，再用`item(overrides)`只覆盖这次要检查的字段。`tests/data.test.cjs`中的日期用例：
+将下面代码接在同一个练习文件后，复用前面的导入。`item(overrides)`只修改要测试的字段：
 
 ```javascript
 const now = '2026-10-06T10:00:00.000Z';
@@ -422,7 +419,9 @@ it('event date range includes both ends and uses the event date', () => {
 
 四条记录的发布时间相同，丢失时间不同，预期只留下起点和终点两条，可同时发现边界遗漏和时间字段用错。固定日期让测试结果可重复，比较编号只检查筛选结果。
 
-### 7.3 测试数据构造
+再次运行同一命令，两个用例通过时显示`2 passing`。
+
+### 7.2 测试数据构造
 
 按代码分支构造正常、错误和边界输入，每组只改变当前规则相关的字段，方便定位失败原因。
 
@@ -443,7 +442,7 @@ it('event date range includes both ends and uses the event date', () => {
 
 Chrome测试用两个隔离账号走完整操作流程，并在390px和1200px宽度下检查溢出及底栏。弹窗操作等待动画结束后再判断结果。
 
-### 7.4 测试分组与运行结果
+### 7.3 测试分组与运行结果
 
 共29项测试：
 
